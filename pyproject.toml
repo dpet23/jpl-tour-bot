@@ -1,4 +1,33 @@
 ################################################################################
+# Build System Requirements
+
+[build-system]
+requires = [  # Build dependencies
+    "poetry-core",
+]
+build-backend = "poetry.core.masonry.api"
+
+################################################################################
+# Project Metadata
+
+[tool.poetry]
+name = "jpl-tour-bot"
+version = "0.2.0"
+description = ""
+authors = ["dpet23 <dpet23@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+jpl_tour_bot = "jpl_tour_bot.__main__:main"
+
+[tool.poetry.dependencies]  # Runtime dependencies
+python = "^3.8"
+
+[tool.poetry.group.dev.dependencies]  # Development dependencies
+ruff = "^0.2.0" # >=0.2.0 <1.0.0
+black = "^24"   # >=24.0.0 <25.0.0
+
+################################################################################
 # Tool Configuration
 
 [tool.ruff]
