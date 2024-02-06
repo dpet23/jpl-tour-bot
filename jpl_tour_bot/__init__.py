@@ -44,14 +44,7 @@ class Args:
             raise FileNotFoundError(path)
 
         arg_parser = argparse.ArgumentParser(description='Find NASA JPL tours and notify of availability.')
-
-        required_group = arg_parser.add_mutually_exclusive_group(required=True)
-        # required_group.add_argument(
-        #     '-d', '--debug-mode',
-        #     action='store_true',
-        #     help='use debug mode to verify that the essential parts work as expected',
-        # )
-        required_group.add_argument(
+        arg_parser.add_argument(
             '-b',
             '--browser-binary',
             action='store',
@@ -59,8 +52,12 @@ class Args:
             type=_existing_file_path,
             help='full path to the browser driver binary (REQUIRED)',
         )
-
-        arg_parser.add_argument('-u', '--ui', action='store_true', help='use the browser ui, default is headless')
+        arg_parser.add_argument(
+            '-u',
+            '--ui',
+            action='store_true',
+            help='use the browser ui, default is headless',
+        )
         arg_parser.add_argument(
             '-n',
             '--notify',
@@ -69,6 +66,9 @@ class Args:
             help='set the notification email address or Discord webhook',
         )
         arg_parser.add_argument(
-            '-v', '--verbose', action='store_true', help='verbose logging (debug level and extra console printing)'
+            '-v',
+            '--verbose',
+            action='store_true',
+            help='verbose logging (debug level and extra console printing)',
         )
         return Args(**vars(arg_parser.parse_args()))

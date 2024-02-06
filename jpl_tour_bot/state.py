@@ -33,13 +33,13 @@ class State:
         :param path: Path to the state file to read.
         """
         if not path.is_file():
-            cls._default().to_file(path)
+            cls._default().save_to_file(path)
 
         with path.open(mode='r', encoding='utf-8') as state_file:
             state_json = json.load(state_file)
         return State(**state_json)
 
-    def to_file(self, path: Path) -> None:
+    def save_to_file(self, path: Path) -> None:
         """
         Save the state to a file.
 
