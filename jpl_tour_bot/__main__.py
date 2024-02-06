@@ -8,7 +8,7 @@ from jpl_tour_bot.bot import run_bot
 from jpl_tour_bot.state import State
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s :: %(levelname)s :: %(name)s :: %(message)s',
 )
 

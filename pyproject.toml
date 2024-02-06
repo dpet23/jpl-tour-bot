@@ -22,6 +22,8 @@ jpl_tour_bot = "jpl_tour_bot.__main__:main"
 
 [tool.poetry.dependencies]  # Runtime dependencies
 python = "^3.8"
+selenium = "^4"
+psutil = "^5.9.8"
 
 [tool.poetry.group.dev.dependencies]  # Development dependencies
 ruff = "^0.2.0" # >=0.2.0 <1.0.0
