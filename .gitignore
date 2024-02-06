@@ -1,0 +1,6 @@
+venv
+.ruff_cache/
+
+jpl_tour.state.json
+
+.ignore/
