@@ -1,12 +1,21 @@
 """Scrape the NASA JPL tours webpage."""
 
+from __future__ import annotations
 
 import logging
 import sys
+import time
+from typing import TYPE_CHECKING
 
-from jpl_tour_bot import Args
+from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
+
+from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
-from jpl_tour_bot.state import State
+
+if TYPE_CHECKING:
+    from jpl_tour_bot.state import State
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,16 +37,120 @@ def run_bot(args: Args, state: State) -> None:
         sys.exit(1)
     state.BROWSER_SESSION = browser_session_id
 
-    temp(browser, args.ui)
+    _scrape_tour(browser, state)
 
     browser.shut_down()
 
 
-def temp(browser: ChromeWebDriver, ui: bool) -> None:
-    browser.get('https://www.google.com')
-    LOGGER.info(browser.title)
+def _scrape_tour(browser: ChromeWebDriver, state: State) -> None:
+    """
+    Find whether any NASA JPL tours are available.
 
-    if ui:
-        import time
+    :param browser: The open browser instance.
+    :param state: State of the JPL tours. Will be updated with new values.
+    """
+    # Open the webpage.
+    browser.open_url(URL_JPL_TOUR)
 
-        time.sleep(10)
+    time.sleep(5)
+
+    # Search for the date of the next tour release.
+    next_tour_msg = _get_next_tour_release_date(browser)
+
+    # Check if the next tour release date has changed.
+    if next_tour_msg != state.NEXT_TOUR_MSG:
+        LOGGER.warning('Next tour message has changed!\n\t%s', next_tour_msg)
+        state.NEXT_TOUR_MSG = next_tour_msg
+
+    time.sleep(5)
+
+    # Search for available tours.
+    _submit_tour_search_form(browser, tour_type='Visitor Day Tour', tour_size=1)
+    tour_available = _get_tour_availability_after_search(browser)
+
+    # Check if the tour availability has changed.
+    if tour_available != state.TOUR_AVAILABLE:
+        LOGGER.warning('Tour availability has changed!\n\tTours %s available', 'ARE' if tour_available else 'are not')
+        state.TOUR_AVAILABLE = tour_available
+
+    time.sleep(5)
+
+
+def _get_next_tour_release_date(browser: ChromeWebDriver) -> str | None:
+    """
+    Find the posted message for the date of the next tour release.
+
+    :param browser: The open browser instance.
+    """
+    next_tour_msg = None
+
+    text_to_search = 'Next Tours Release Date'
+    LOGGER.info('Searching for the %s', text_to_search.lower())
+    msg_element = browser.find_by_xpath(f"//h1[text()='{text_to_search}']/following-sibling::div")
+    if msg_element:
+        next_tour_msg = msg_element.text
+        LOGGER.debug('Found next tour message: "%s"', next_tour_msg)
+
+    return next_tour_msg
+
+
+def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_size: int) -> None:
+    """
+    Fill out and submit the web form, searching for available tours.
+
+    :param browser: The open browser instance.
+    :param tour_type: The type of tour to search for, must be one of the values from the web dropdown.
+    :param tour_size: The number of visitors, must be one of the form's allowed values.
+    """
+    LOGGER.info('Finding the tour search form')
+    text_to_search = 'Reserve Here'
+    search_form_element = browser.find_by_xpath(f"//h1[text()='{text_to_search}']/following-sibling::div")
+    if not search_form_element:
+        raise NoSuchElementException('Could not find tour search form')
+
+    LOGGER.info('Selecting the tour type: "%s"', tour_type)
+    tour_type_select = browser.find_by_xpath("//select[@name='categoryId']", parent=search_form_element)
+    if not tour_type_select:
+        raise NoSuchElementException('Could not find tour type select box')
+    Select(tour_type_select).select_by_visible_text(tour_type)
+
+    time.sleep(1)
+
+    LOGGER.info('Entering the number of visitors: %d', tour_size)
+    tour_size_input = browser.find_by_xpath("//input[@name='groupSize']", parent=search_form_element)
+    if not tour_size_input:
+        raise NoSuchElementException('Could not find tour size input box')
+    tour_size_input.send_keys(str(tour_size))
+
+    time.sleep(1)
+
+    LOGGER.info('Submitting the tour search form')
+    submit_form_button = browser.find_by_xpath("//button[contains(@class, 'btn-submit')]", parent=search_form_element)
+    if not submit_form_button:
+        raise NoSuchElementException('Could not find submit button for the tour search form')
+    if not submit_form_button.is_enabled():
+        raise RuntimeError('Submit button for the tour search form is not enabled')
+    try:
+        submit_form_button.click()
+    except Exception:
+        raise RuntimeError("Can't click on %s", submit_form_button.get_attribute('outerHTML')) from None
+
+
+def _get_tour_availability_after_search(browser: ChromeWebDriver) -> bool:
+    """
+    After searching for tours by submitting a form, check if there's any tours available.
+
+    :param browser: The open browser instance.
+    """
+    LOGGER.info('Waiting for the tour search to load')
+    browser.wait_until_visible(By.XPATH, "//*[@id='primary_column']/div/table")
+    time.sleep(5)
+
+    LOGGER.info('Trying to find the error message')
+    error_msg_element = browser.find_by_xpath("//*[@id='primary_column']/div/div/label[contains(@class, 'err')]")
+    if error_msg_element:
+        LOGGER.info('No tours found.\n\t%s', error_msg_element.text)
+        return False
+
+    browser.save_screenshot_full_page(str(SCREENSHOT_PATH.absolute()))
+    return True

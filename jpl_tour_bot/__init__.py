@@ -6,9 +6,11 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
-STATE_FILE = Path(__file__).parent / 'jpl_tour.state.json'
-URL_JPL_TOUR = 'https://www.jpl.nasa.gov/events/tours/'
+_SCRIPT_PATH = Path(__file__).parent
+STATE_FILE = _SCRIPT_PATH / 'jpl_tour.state.json'
+SCREENSHOT_PATH = _SCRIPT_PATH / 'jpl_tours.png'
 
+URL_JPL_TOUR = 'https://www.jpl.nasa.gov/events/tours/'
 BROWSER_DEFAULT_PAGE_TIMEOUT = 60  # seconds
 BROWSER_WINDOW_SIZE_PX = (1280, 800)
 
