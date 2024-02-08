@@ -54,11 +54,15 @@ black [--check --diff] [--config pyproject.toml] .
 
 ### Code Linting
 
-General code verification is handled by [Ruff](https://docs.astral.sh/ruff/).
+Due to the lack of automated testing, the codebase heavily relies on static code checking.
+Type hints are used to help the code checkers and IDEs.
+
+General code verification is handled by [Ruff](https://docs.astral.sh/ruff/)
+and strict type checking is handled by [mypy](https://mypy.readthedocs.io/en/stable/).
 
 To check the code, run:
 ```bash
-ruff check [--no-cache] [--config pyproject.toml] .
+ruff check [--no-cache] [--config pyproject.toml] . && mypy .
 ```
 
 Some issues can be automatically fixed using the `--fix` flag.

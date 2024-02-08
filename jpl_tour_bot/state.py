@@ -58,7 +58,7 @@ class State:
         class _CustomJSONEncoder(json.JSONEncoder):
             """Custom JSON encoder subclass to serialize dataclasses."""
 
-            def default(self, obj) -> dict[str, Any] | Any:  # noqa: ANN001, ANN401 (missing type, Any type)
+            def default(self, obj: State) -> dict[str, Any] | Any:  # noqa: ANN401 (Any type)
                 if is_dataclass(obj):
                     return asdict(obj)
                 return super().default(obj)

@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import logging
 from traceback import format_exception
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 LOGGER = logging.getLogger(__name__)
 
@@ -68,7 +72,9 @@ class StoreWarningsErrors:
         self._logger.addHandler(self._capture_handler)
         return self
 
-    def __exit__(self, _exc_type, exc_obj: BaseException | None, _exc_tb) -> bool:  # noqa: ANN001 (type annotations)
+    def __exit__(
+        self, _exc_type: type[BaseException] | None, exc_obj: BaseException | None, _exc_tb: TracebackType | None
+    ) -> bool:
         """
         Clean up when leaving a ``with`` context.
 
