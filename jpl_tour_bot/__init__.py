@@ -21,7 +21,7 @@ class Args:
 
     browser_binary: Path
     ui: bool
-    notify: str
+    notify: str | None
     verbose: bool
 
     @staticmethod
@@ -68,7 +68,7 @@ class Args:
             '--notify',
             action='store',
             metavar='DEST',
-            help='set the notification email address or Discord webhook',
+            help='set the notification Discord webhook',
         )
         arg_parser.add_argument(
             '-v',

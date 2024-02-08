@@ -24,12 +24,14 @@ jpl_tour_bot = "jpl_tour_bot.__main__:main"
 python = "^3.8"
 selenium = "^4"
 psutil = "^5.9.8"
+requests = "^2.31.0"
 
 [tool.poetry.group.dev.dependencies]  # Development dependencies
 ruff = "^0.2.0" # >=0.2.0 <1.0.0
 black = "^24"   # >=24.0.0 <25.0.0
 mypy = "^1.8.0"
 types-psutil = "^5.9.5.20240205"
+types-requests = "^2.31.0.20240125"
 
 ################################################################################
 # Tool Configuration

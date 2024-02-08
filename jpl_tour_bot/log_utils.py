@@ -86,7 +86,7 @@ class StoreWarningsErrors:
 
         if isinstance(exc_obj, Exception):
             self.errors.append(_format_exception_message(exc_obj, include_tb=False))
-            LOGGER.error('Top-level failure', exc_info=exc_obj)
+            LOGGER.error('Top-level failure:', exc_info=exc_obj)
 
         # The exception has been handled, return `True` to allow code execution to continue.
         return exc_obj is None or isinstance(exc_obj, Exception)

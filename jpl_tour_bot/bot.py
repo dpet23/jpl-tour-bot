@@ -25,6 +25,7 @@ def run_bot(args: Args, state: State) -> list[str]:
 
     :param args: The command line arguments.
     :param state: State of the JPL tours, from the previous script execution.
+    :return: A list of important state changes to include in a notification.
     """
     browser = ChromeWebDriver.start_new_session(executable_path=args.browser_binary, headless=not args.ui)
 
@@ -47,6 +48,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> list[str]:
 
     :param browser: The open browser instance.
     :param state: State of the JPL tours. Will be updated with new values.
+    :return: A list of important state changes to include in a notification.
     """
     # Open the webpage.
     browser.open_url(URL_JPL_TOUR)
@@ -60,7 +62,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> list[str]:
 
     # Check if the next tour release date has changed.
     if next_tour_msg != state.NEXT_TOUR_MSG:
-        notification_msg = f'Next tour message has changed!\n\t{next_tour_msg}'
+        notification_msg = f'Next tour message has changed\n\t{next_tour_msg}'
         notification_messages.append(notification_msg)
         LOGGER.info(notification_msg)
 
@@ -74,7 +76,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> list[str]:
 
     # Check if the tour availability has changed.
     if tour_available != state.TOUR_AVAILABLE:
-        notification_msg = f"Tour availability has changed!\n\tTours {'ARE' if tour_available else 'are not'} available"
+        notification_msg = f"Tour availability has changed\n\tTours {'ARE' if tour_available else 'are not'} available"
         notification_messages.append(notification_msg)
         LOGGER.info(notification_msg)
 
@@ -85,13 +87,13 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> list[str]:
     return notification_messages
 
 
-def _get_next_tour_release_date(browser: ChromeWebDriver) -> str | None:
+def _get_next_tour_release_date(browser: ChromeWebDriver) -> str:
     """
     Find the posted message for the date of the next tour release.
 
     :param browser: The open browser instance.
     """
-    next_tour_msg = None
+    next_tour_msg = '(empty)'
 
     text_to_search = 'Next Tours Release Date'
     LOGGER.info('Searching for the %s', text_to_search.lower())

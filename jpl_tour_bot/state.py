@@ -18,12 +18,12 @@ class State:
     """State of the JPL tours, saved between script executions."""
 
     BROWSER_SESSION: str
-    NEXT_TOUR_MSG: str | None
+    NEXT_TOUR_MSG: str
     TOUR_AVAILABLE: bool
 
     @staticmethod
     def _default() -> State:
-        return State('', None, False)
+        return State('', '(empty)', False)
 
     @classmethod
     def from_file(cls, path: Path) -> State:
