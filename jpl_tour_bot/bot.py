@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import sys
 import time
 from typing import TYPE_CHECKING
 
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
 LOGGER = logging.getLogger(__name__)
 
 
-def run_bot(args: Args, state: State) -> None:
+def run_bot(args: Args, state: State) -> list[str]:
     """
     Scrape the NASA JPL tours webpage.
 
@@ -32,17 +31,17 @@ def run_bot(args: Args, state: State) -> None:
     # Ensure we're running in a new session.
     browser_session_id: str = browser.session_id or ''
     if browser_session_id == state.BROWSER_SESSION:
-        LOGGER.error('The session ID has not changed from the saved state. Aborting.')
         browser.shut_down()
-        sys.exit(1)
+        raise ValueError('The session ID has not changed from the saved state. Aborting.')
     state.BROWSER_SESSION = browser_session_id
 
-    _scrape_tour(browser, state)
+    try:
+        return _scrape_tour(browser, state)
+    finally:
+        browser.shut_down()
 
-    browser.shut_down()
 
-
-def _scrape_tour(browser: ChromeWebDriver, state: State) -> None:
+def _scrape_tour(browser: ChromeWebDriver, state: State) -> list[str]:
     """
     Find whether any NASA JPL tours are available.
 
@@ -54,12 +53,17 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> None:
 
     time.sleep(5)
 
+    notification_messages = []
+
     # Search for the date of the next tour release.
     next_tour_msg = _get_next_tour_release_date(browser)
 
     # Check if the next tour release date has changed.
     if next_tour_msg != state.NEXT_TOUR_MSG:
-        LOGGER.warning('Next tour message has changed!\n\t%s', next_tour_msg)
+        notification_msg = f'Next tour message has changed!\n\t{next_tour_msg}'
+        notification_messages.append(notification_msg)
+        LOGGER.info(notification_msg)
+
         state.NEXT_TOUR_MSG = next_tour_msg
 
     time.sleep(5)
@@ -70,10 +74,15 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> None:
 
     # Check if the tour availability has changed.
     if tour_available != state.TOUR_AVAILABLE:
-        LOGGER.warning('Tour availability has changed!\n\tTours %s available', 'ARE' if tour_available else 'are not')
+        notification_msg = f"Tour availability has changed!\n\tTours {'ARE' if tour_available else 'are not'} available"
+        notification_messages.append(notification_msg)
+        LOGGER.info(notification_msg)
+
         state.TOUR_AVAILABLE = tour_available
 
     time.sleep(5)
+
+    return notification_messages
 
 
 def _get_next_tour_release_date(browser: ChromeWebDriver) -> str | None:

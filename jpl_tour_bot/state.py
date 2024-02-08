@@ -37,7 +37,16 @@ class State:
 
         with path.open(mode='r', encoding='utf-8') as state_file:
             state_json = json.load(state_file)
-        return State(**state_json)
+
+        try:
+            return State(**state_json)
+        except Exception as ex:
+            LOGGER.warning(
+                'Failed to parse the existing state file into an object: %s\n%s',
+                str(ex),
+                json.dumps(state_json, indent=2),
+            )
+            return cls._default()
 
     def save_to_file(self, path: Path) -> None:
         """
