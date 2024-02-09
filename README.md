@@ -7,7 +7,7 @@ Scrape the NASA JPL tours and notify if a reservation can be made.
 
 ### Requirements
 
-* [Python 3.8](https://www.python.org/downloads/) or newer,
+* [Python 3.10](https://www.python.org/downloads/) or newer,
   and Pip
 
 ### Virtual Environment Setup

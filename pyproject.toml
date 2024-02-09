@@ -21,7 +21,7 @@ readme = "README.md"
 jpl_tour_bot = "jpl_tour_bot.__main__:main"
 
 [tool.poetry.dependencies]  # Runtime dependencies
-python = "^3.8"
+python = "^3.10"
 selenium = "^4"
 psutil = "^5.9.8"
 requests = "^2.31.0"
@@ -37,7 +37,7 @@ types-requests = "^2.31.0.20240125"
 # Tool Configuration
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 120
 
 [tool.ruff.lint]
