@@ -1,6 +1,14 @@
-venv
+# Environment
+.venv
+.mypy_cache/
 .ruff_cache/
 
+# App
 jpl_tour.state.json
 
+# General
 .ignore/
+
+# Python
+__pycache__/
+dist/

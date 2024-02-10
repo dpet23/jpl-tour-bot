@@ -1,8 +1,43 @@
 ################################################################################
+# Build System Requirements
+
+[build-system]
+requires = [  # Build dependencies
+    "poetry-core",
+]
+build-backend = "poetry.core.masonry.api"
+
+################################################################################
+# Project Metadata
+
+[tool.poetry]
+name = "jpl-tour-bot"
+version = "0.2.0"
+description = ""
+authors = ["dpet23 <dpet23@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+jpl_tour_bot = "jpl_tour_bot.__main__:main"
+
+[tool.poetry.dependencies]  # Runtime dependencies
+python = "^3.10"
+selenium = "^4"
+psutil = "^5.9.8"
+requests = "^2.31.0"
+
+[tool.poetry.group.dev.dependencies]  # Development dependencies
+ruff = "^0.2.0" # >=0.2.0 <1.0.0
+black = "^24"   # >=24.0.0 <25.0.0
+mypy = "^1.8.0"
+types-psutil = "^5.9.5.20240205"
+types-requests = "^2.31.0.20240125"
+
+################################################################################
 # Tool Configuration
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py310"
 line-length = 120
 
 [tool.ruff.lint]
@@ -42,3 +77,19 @@ line-length = 120
 fast = false  # Check that the code is semantically equivalent before and after reformatting
 skip-string-normalization = true  # Don't convert to double quotes
 color = true
+
+[tool.mypy]
+exclude = [".venv/"]
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+check_untyped_defs = true
+no_implicit_optional = true
+disallow_any_unimported = true
+disallow_subclassing_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
