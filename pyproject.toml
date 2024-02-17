@@ -12,7 +12,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "jpl-tour-bot"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["dpet23 <dpet23@users.noreply.github.com>"]
 readme = "README.md"
@@ -66,6 +66,7 @@ select = [
 ]
 ignore = [
     "ANN101", "ANN102",     # type checkers infer the type of `self`/`cls` automatically
+    "S311",     # allow pseudo-random generators
     "TRY003",   # allow formatting exception messages
 ]
 

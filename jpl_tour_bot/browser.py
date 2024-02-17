@@ -47,20 +47,17 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
     @overload
     def _find_element(
         self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
-    ) -> WebElement:
-        ...
+    ) -> WebElement: ...
 
     @overload
     def _find_element(
         self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
-    ) -> list[WebElement]:
-        ...
+    ) -> list[WebElement]: ...
 
     @overload
     def _find_element(
         self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool
-    ) -> WebElement | list[WebElement]:
-        ...
+    ) -> WebElement | list[WebElement]: ...
 
     def _find_element(
         self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool = False

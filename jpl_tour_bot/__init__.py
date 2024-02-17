@@ -10,6 +10,8 @@ _SCRIPT_PATH = Path(__file__).parent
 STATE_FILE = _SCRIPT_PATH / 'jpl_tour.state.json'
 SCREENSHOT_PATH = _SCRIPT_PATH / 'jpl_tours.png'
 
+WAIT_TIME_LIMITS = {'start': 5 * 60, 'stop': 2 * 60 * 60}  # 5 min - 2 hours
+
 URL_JPL_TOUR = 'https://www.jpl.nasa.gov/events/tours/'
 BROWSER_DEFAULT_PAGE_TIMEOUT = 60  # seconds
 BROWSER_WINDOW_SIZE_PX = (1280, 800)
@@ -23,6 +25,7 @@ class Args:
     ui: bool
     notify: str | None
     verbose: bool
+    no_wait: bool
 
     @staticmethod
     def parse_args() -> Args:
@@ -75,5 +78,11 @@ class Args:
             '--verbose',
             action='store_true',
             help='verbose logging (debug level and extra console printing)',
+        )
+        arg_parser.add_argument(
+            '-w',
+            '--no-wait',
+            action='store_true',
+            help='disable random sleep before running the bot',
         )
         return Args(**vars(arg_parser.parse_args()))
