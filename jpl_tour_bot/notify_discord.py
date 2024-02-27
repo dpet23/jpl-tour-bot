@@ -71,7 +71,7 @@ def post_discord(webhook_url: str, messages: list[str], warnings: list[str], err
     message_color = COLOR_HTML_GRAY
     message_fields: list[dict] = []
     for msg in messages:
-        if 'ARE available' in msg:
+        if 'available tour' in msg:
             message_color = COLOR_GOOGLE_GREEN
         elif '(empty)' in msg:
             message_color = COLOR_GOOGLE_BLUE

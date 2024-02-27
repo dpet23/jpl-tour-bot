@@ -19,11 +19,11 @@ class State:
 
     BROWSER_SESSION: str
     NEXT_TOUR_MSG: str
-    TOUR_AVAILABLE: bool
+    TOUR_AVAILABLE: str
 
     @staticmethod
     def _default() -> State:
-        return State('', '(empty)', False)
+        return State('', '(empty)', '')
 
     @classmethod
     def from_file(cls, path: Path) -> State:

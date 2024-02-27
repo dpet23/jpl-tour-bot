@@ -77,6 +77,58 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         func = search_element.find_elements if multiple else search_element.find_element
         return func(locator, selector)
 
+    def find_by_class(self, class_name: str, parent: WebElement | None = None) -> WebElement | None:
+        """
+        Find DOM element by class name.
+
+        :param class_name: Class name of HTML object.
+        :param parent: DOM element in which to search. The browser by default.
+        :return: The first matching DOM element found, or None.
+        """
+        LOGGER.debug('Searching for DOM element with class "%s"', class_name)
+        try:
+            return self._find_element(By.CLASS_NAME, class_name, parent, multiple=False)
+        except NoSuchElementException:
+            LOGGER.error('Could not find element with class: %s', class_name)  # noqa: TRY400 (don't log stacktrace)
+            return None
+
+    @overload
+    def find_by_tag(
+        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
+    ) -> WebElement | None: ...
+
+    @overload
+    def find_by_tag(
+        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
+    ) -> list[WebElement]: ...
+
+    def find_by_tag(
+        self, selector: str, parent: WebElement | None = None, *, multiple: bool = False
+    ) -> WebElement | None | list[WebElement]:
+        """
+        Find DOM element by HTML tag name.
+
+        :param selector: HTML element to search for.
+        :param parent: DOM element in which to search. The browser by default.
+        :param multiple: Whether to find multiple elements (keyword only).
+        :return: Single element: the first matching DOM element found, or None.
+                 Multiple elements: a list of matching elements.
+        """
+        LOGGER.debug('Searching for HTML element "%s"', selector)
+        return self._find_element(By.TAG_NAME, selector, parent, multiple=multiple)
+
+    def find_by_xpath_or_error(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
+        """
+        Find DOM element by XPATH.
+
+        :param xpath: XPATH to search for.
+        :param parent: DOM element in which to search. The browser by default.
+        :return: The first matching DOM element found, or None.
+        :raise NoSuchElementException: If no element was found.
+        """
+        LOGGER.debug('Searching for HTML element "%s"', xpath)
+        return self._find_element(By.XPATH, xpath, parent, multiple=False)
+
     def find_by_xpath(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
         """
         Find DOM element by XPATH.
@@ -85,9 +137,8 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         :param parent: DOM element in which to search. The browser by default.
         :return: The first matching DOM element found, or None.
         """
-        LOGGER.debug('Searching for HTML element "%s"', xpath)
         try:
-            return self._find_element(By.XPATH, xpath, parent, multiple=False)
+            return self.find_by_xpath_or_error(xpath, parent)
         except NoSuchElementException:
             LOGGER.error('Could not find element by XPATH: %s', xpath)  # noqa: TRY400 (don't log stacktrace)
             return None
