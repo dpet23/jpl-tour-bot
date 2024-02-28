@@ -38,8 +38,8 @@ class _CaptureHandler(logging.Handler):
             # Use a custom implementation for compatibility before Python 3.11.
             # See: https://docs.python.org/3/library/exceptions.html#BaseException.__notes__
             if getattr(issue, '__notes__', None) is None:
-                issue.__notes__ = []
-            issue.__notes__.append(log_message)
+                issue.__notes__ = []  # type: ignore[union-attr]
+            issue.__notes__.append(log_message)  # type: ignore[union-attr]
 
             # Store the exception message and notes, without the stacktrace.
             log_message = _format_exception_message(issue, include_tb=False)

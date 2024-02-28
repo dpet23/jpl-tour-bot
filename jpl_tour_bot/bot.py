@@ -33,7 +33,8 @@ class Notification(NamedTuple):
 
     def __str__(self) -> str:
         """Represent the notification as a string."""
-        return f"{self.title}\n{indent(self.content, '\t')}"
+        content = indent(self.content, '\t')  # backslash not allowed in expression portion of f-string
+        return f"{self.title}\n{content}"
 
 
 def run_bot(args: Args, state: State) -> list[Notification]:
