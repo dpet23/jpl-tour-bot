@@ -24,7 +24,7 @@ Common Bash commands:
   * `poetry config virtualenvs.in-project true`
 
 * Create a new virtualenv
-  * `poetry env use python`
+  * `poetry env use python3.10`
 
 * Use the virtuelenv in the same shell
   * `source $(poetry env info --path)/bin/activate`

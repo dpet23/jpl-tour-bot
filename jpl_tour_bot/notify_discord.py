@@ -6,10 +6,12 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import requests
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-import requests
+    from jpl_tour_bot.bot import Notification
 
 LOGGER = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
@@ -50,7 +52,7 @@ class Field(_DiscordObject):
     inline: bool = False
 
 
-def post_discord(webhook_url: str, messages: list[str], warnings: list[str], errors: list[str]) -> None:
+def post_discord(webhook_url: str, messages: list[Notification], warnings: list[str], errors: list[str]) -> None:
     """
     Post a message to a Discord channel.
 
@@ -70,14 +72,12 @@ def post_discord(webhook_url: str, messages: list[str], warnings: list[str], err
 
     message_color = COLOR_HTML_GRAY
     message_fields: list[dict] = []
-    for msg in messages:
-        if 'ARE available' in msg:
+    for notification in messages:
+        if 'available tour' in notification.content or notification.title == 'Tour details':
             message_color = COLOR_GOOGLE_GREEN
-        elif '(empty)' in msg:
+        elif '(empty)' in notification.content:
             message_color = COLOR_GOOGLE_BLUE
-
-        title, webpage_msg = msg.split('\n\t', 1)
-        message_fields.append(Field(name=title, value=webpage_msg).as_dict())
+        message_fields.append(Field(name=notification.title, value=notification.content).as_dict())
     if message_fields:
         embeds.append(Embed(color=message_color, fields=message_fields).as_dict())
 
