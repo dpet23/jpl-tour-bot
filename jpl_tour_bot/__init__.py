@@ -10,10 +10,8 @@ _SCRIPT_PATH = Path(__file__).parent
 STATE_FILE = _SCRIPT_PATH / 'jpl_tour.state.json'
 SCREENSHOT_PATH = _SCRIPT_PATH / 'jpl_tours.png'
 
-WAIT_TIME_LIMITS = {'start': 5 * 60, 'stop': 2 * 60 * 60}  # 5 min - 2 hours
-
 URL_JPL_TOUR = 'https://www.jpl.nasa.gov/events/tours/'
-BROWSER_DEFAULT_PAGE_TIMEOUT = 60  # seconds
+BROWSER_DEFAULT_PAGE_TIMEOUT_SEC = 60
 BROWSER_WINDOW_SIZE_PX = (1280, 800)
 
 
@@ -23,9 +21,10 @@ class Args:
 
     browser_binary: Path
     ui: bool
+    page_timeout: int
     notify: str | None
     verbose: bool
-    no_wait: bool
+    wait: list[int]
 
     @staticmethod
     def parse_args() -> Args:
@@ -64,7 +63,18 @@ class Args:
             '-u',
             '--ui',
             action='store_true',
-            help='use the browser ui, default is headless',
+            help='use the browser ui (default: headless)',
+        )
+        arg_parser.add_argument(
+            '-t',
+            '--page-timeout',
+            action='store',
+            metavar='SEC',
+            default=BROWSER_DEFAULT_PAGE_TIMEOUT_SEC,
+            help=(
+                'maximum time to wait for a webpage to load '
+                f'(default: {BROWSER_DEFAULT_PAGE_TIMEOUT_SEC/60:.0f} minutes)'
+            ),
         )
         arg_parser.add_argument(
             '-n',
@@ -77,12 +87,15 @@ class Args:
             '-v',
             '--verbose',
             action='store_true',
-            help='verbose logging (debug level and extra console printing)',
+            help='enable verbose logging',
         )
         arg_parser.add_argument(
             '-w',
-            '--no-wait',
-            action='store_true',
-            help='disable random sleep before running the bot',
+            '--wait',
+            action='store',
+            nargs=2,
+            metavar=('MIN', 'MAX'),
+            type=int,
+            help='before running the bot, wait some time between MIN and MAX seconds',
         )
         return Args(**vars(arg_parser.parse_args()))
