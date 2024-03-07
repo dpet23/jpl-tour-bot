@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+from datetime import timedelta
 from textwrap import indent
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -14,7 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
 
-from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, WAIT_TIME_LIMITS, Args
+from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
 
 if TYPE_CHECKING:
@@ -45,12 +46,12 @@ def run_bot(args: Args, state: State) -> list[Notification]:
     :param state: State of the JPL tours, from the previous script execution.
     :return: A list of important state changes to include in a notification.
     """
-    if args.no_wait:
-        LOGGER.debug('Starting bot immediately')
-    else:
-        wait_time = random.randrange(**WAIT_TIME_LIMITS)
-        LOGGER.info('Waiting %d minutes', wait_time / 60)
+    if args.wait:
+        wait_time = random.randrange(start=min(args.wait), stop=max(args.wait) + 1)
+        LOGGER.info('Waiting %d seconds (%s)', wait_time, timedelta(seconds=wait_time))
         time.sleep(wait_time)
+    else:
+        LOGGER.debug('Starting bot immediately')
 
     browser = ChromeWebDriver.start_new_session(executable_path=args.browser_binary, headless=not args.ui)
 

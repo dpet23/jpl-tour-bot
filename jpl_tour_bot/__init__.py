@@ -10,8 +10,6 @@ _SCRIPT_PATH = Path(__file__).parent
 STATE_FILE = _SCRIPT_PATH / 'jpl_tour.state.json'
 SCREENSHOT_PATH = _SCRIPT_PATH / 'jpl_tours.png'
 
-WAIT_TIME_LIMITS = {'start': 5 * 60, 'stop': 2 * 60 * 60}  # 5 min - 2 hours
-
 URL_JPL_TOUR = 'https://www.jpl.nasa.gov/events/tours/'
 BROWSER_DEFAULT_PAGE_TIMEOUT = 60  # seconds
 BROWSER_WINDOW_SIZE_PX = (1280, 800)
@@ -25,7 +23,7 @@ class Args:
     ui: bool
     notify: str | None
     verbose: bool
-    no_wait: bool
+    wait: list[int]
 
     @staticmethod
     def parse_args() -> Args:
@@ -81,8 +79,11 @@ class Args:
         )
         arg_parser.add_argument(
             '-w',
-            '--no-wait',
-            action='store_true',
-            help='disable random sleep before running the bot',
+            '--wait',
+            action='store',
+            nargs=2,
+            metavar=('MIN', 'MAX'),
+            type=int,
+            help='before running the bot, wait some time between MIN and MAX seconds',
         )
         return Args(**vars(arg_parser.parse_args()))
