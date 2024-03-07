@@ -200,17 +200,24 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
     if error_msg_element:
         return [Notification(notification_title_new_availability, error_msg_element.text.strip())]
 
+    notifications = []
+
     LOGGER.info('Trying to find the number of available tours')
     tour_availability_msg = browser.find_by_class('tour_count')
-    if not tour_availability_msg:
-        return [Notification(notification_title_new_availability, 'No tours found.')]
-
-    notifications = [Notification(notification_title_new_availability, tour_availability_msg.text.strip())]
+    if tour_availability_msg:
+        tour_availability_notif = Notification(notification_title_new_availability, tour_availability_msg.text.strip())
+    else:
+        tour_availability_notif = Notification(notification_title_new_availability, 'No tours found.')
+    notifications.append(tour_availability_notif)
 
     LOGGER.info('Parsing the table of available tours')
     available_tours_table = browser.find_by_class('available_tours')
     if available_tours_table:
-        available_tour_details = _parse_available_tours_table(browser, available_tours_table)
+        try:
+            available_tour_details = _parse_available_tours_table(browser, available_tours_table)
+        except Exception:
+            LOGGER.exception('Could not parse the table of available tours')
+            available_tour_details = code_block(available_tours_table.get_attribute('outerHTML') or '', language='html')
         notifications.append(Notification('Tour details', available_tour_details))
 
     browser.save_screenshot_full_page(str(SCREENSHOT_PATH.absolute()))
