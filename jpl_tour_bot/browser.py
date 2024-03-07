@@ -15,7 +15,7 @@ from selenium.webdriver.remote.webdriver import WebDriver as SeleniumRemoteWebDr
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
-from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT, BROWSER_WINDOW_SIZE_PX
+from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, BROWSER_WINDOW_SIZE_PX
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -145,7 +145,7 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
 
     # ------------ Waiting For Elements ------------ #
 
-    def wait_until_visible(self, locator: str, selector: str, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT) -> None:
+    def wait_until_visible(self, locator: str, selector: str, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC) -> None:
         """
         Wait until a DOM element is visible.
 
@@ -189,11 +189,14 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
     """Starts a new Chrome session. Supports custom helper functions."""
 
     @staticmethod
-    def start_new_session(executable_path: Path, *, headless: bool) -> ChromeWebDriver:
+    def start_new_session(
+        executable_path: Path, page_load_timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, *, headless: bool
+    ) -> ChromeWebDriver:
         """
         Start a new browser session.
 
         :param executable_path: Full path to the webdriver binary.
+        :param page_load_timeout: Amount of time to wait for a page load to complete.
         :param headless: Whether to start the browser UI (keyword only).
         :return: A webdriver running Chrome.
         :raise ProcessLookupError: If a process already exists for the executable.
@@ -216,7 +219,7 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
 
         browser = ChromeWebDriver(service=ChromeService(str(executable_path)), options=options)
 
-        browser.set_page_load_timeout(BROWSER_DEFAULT_PAGE_TIMEOUT)
+        browser.set_page_load_timeout(page_load_timeout)
         browser.set_window_size(*BROWSER_WINDOW_SIZE_PX)
 
         LOGGER.info(

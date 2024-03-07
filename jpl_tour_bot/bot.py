@@ -53,7 +53,9 @@ def run_bot(args: Args, state: State) -> list[Notification]:
     else:
         LOGGER.debug('Starting bot immediately')
 
-    browser = ChromeWebDriver.start_new_session(executable_path=args.browser_binary, headless=not args.ui)
+    browser = ChromeWebDriver.start_new_session(
+        executable_path=args.browser_binary, page_load_timeout=args.page_timeout, headless=not args.ui
+    )
 
     # Ensure we're running in a new session.
     browser_session_id: str = browser.session_id or ''
