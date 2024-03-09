@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+from collections.abc import Sequence
 from traceback import format_exception
 from typing import TYPE_CHECKING
 
@@ -104,10 +106,11 @@ def _format_exception_message(issue: Warning | Exception, *, include_tb: bool) -
     if (st := getattr(issue, 'stacktrace', None)) and isinstance(st, list):
         issue.stacktrace = None  # type: ignore[union-attr]
 
-    # # FUTURE: for py < 3.11
-    # if isinstance(self.__notes__, collections.abc.Sequence):
-    #     for note in self.__notes__:
-    #         note = _safe_string(note, 'note')
-    #         yield from [l + '\n' for l in note.split('\n')]
+    # Always include any exception notes in the formatted message.
+    # The `traceback.format_exception()` function includes the notes from Python 3.11 onwards,
+    # but a custom implementation is required in Python 3.10.
+    notes = ''
+    if sys.version_info[:2] <= (3, 10) and hasattr(issue, '__notes__') and isinstance(issue.__notes__, Sequence):
+        notes = '\n' + '\n'.join(note for note in issue.__notes__)
 
-    return ''.join(format_exception(type(issue), issue, issue.__traceback__ if include_tb else None)).strip()
+    return ''.join(format_exception(type(issue), issue, issue.__traceback__ if include_tb else None)).strip() + notes
