@@ -127,7 +127,7 @@ def _get_next_tour_release_date(browser: ChromeWebDriver) -> str:
 
     text_to_search = 'Next Tours Release Date'
     LOGGER.info('Searching for the %s', text_to_search.lower())
-    msg_element = browser.find_by_xpath(f"//h1[text()='{text_to_search}']/following-sibling::div")
+    msg_element = browser.find(By.XPATH, f"//h1[text()='{text_to_search}']/following-sibling::div")
     if msg_element:
         next_tour_msg = msg_element.text
         LOGGER.debug('Found next tour message: "%s"', next_tour_msg)
@@ -145,12 +145,12 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
     """
     LOGGER.info('Finding the tour search form')
     text_to_search = 'Reserve Here'
-    search_form_element = browser.find_by_xpath(f"//h1[text()='{text_to_search}']/following-sibling::div")
+    search_form_element = browser.find(By.XPATH, f"//h1[text()='{text_to_search}']/following-sibling::div")
     if not search_form_element:
         raise NoSuchElementException('Could not find tour search form')
 
     LOGGER.info('Selecting the tour type: "%s"', tour_type)
-    tour_type_select = browser.find_by_xpath("//select[@name='categoryId']", parent=search_form_element)
+    tour_type_select = browser.find(By.XPATH, "//select[@name='categoryId']", parent=search_form_element)
     if not tour_type_select:
         raise NoSuchElementException('Could not find tour type select box')
     Select(tour_type_select).select_by_visible_text(tour_type)
@@ -158,7 +158,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
     time.sleep(1)
 
     LOGGER.info('Entering the number of visitors: %d', tour_size)
-    tour_size_input = browser.find_by_xpath("//input[@name='groupSize']", parent=search_form_element)
+    tour_size_input = browser.find(By.XPATH, "//input[@name='groupSize']", parent=search_form_element)
     if not tour_size_input:
         raise NoSuchElementException('Could not find tour size input box')
     tour_size_input.send_keys(str(tour_size))
@@ -166,7 +166,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
     time.sleep(1)
 
     LOGGER.info('Submitting the tour search form')
-    submit_form_button = browser.find_by_xpath("//button[contains(@class, 'btn-submit')]", parent=search_form_element)
+    submit_form_button = browser.find(By.XPATH, "//button[contains(@class, 'btn-submit')]", parent=search_form_element)
     if not submit_form_button:
         raise NoSuchElementException('Could not find submit button for the tour search form')
     if not submit_form_button.is_enabled():
@@ -190,12 +190,12 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
 
     LOGGER.info('Trying to find the error message')
     try:
-        error_msg_element = browser.find_by_xpath_or_error(
-            "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]"
+        error_msg_element = browser.find(
+            By.XPATH, "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]", raise_exception=True
         )
     except NoSuchElementException:
         # No error element was found, so a tour may be available.
-        # Use a custom exception handler to suppress the error message.
+        # Catch the exception here to suppress the error message.
         error_msg_element = None
 
     notification_title_new_availability = 'Tour availability has changed'
@@ -206,7 +206,7 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
     notifications = []
 
     LOGGER.info('Trying to find the number of available tours')
-    tour_availability_msg = browser.find_by_class('tour_count')
+    tour_availability_msg = browser.find(By.CLASS_NAME, 'tour_count')
     if tour_availability_msg:
         tour_availability_notif = Notification(notification_title_new_availability, tour_availability_msg.text.strip())
     else:
@@ -214,7 +214,7 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
     notifications.append(tour_availability_notif)
 
     LOGGER.info('Parsing the table of available tours')
-    available_tours_table = browser.find_by_class('available_tours')
+    available_tours_table = browser.find(By.CLASS_NAME, 'available_tours')
     if available_tours_table:
         try:
             available_tour_details = _parse_available_tours_table(browser, available_tours_table)
@@ -235,7 +235,7 @@ def _parse_available_tours_table(browser: ChromeWebDriver, available_tours_table
     :param available_tours_table: Web element representing the table of available tours.
     :return: The details of available tours, as a multiline string representing a table.
     """
-    table_rows = browser.find_by_tag('tr', available_tours_table, multiple=True)
+    table_rows = browser.find(By.TAG_NAME, 'tr', available_tours_table, multiple=True, raise_exception=True)
 
     # Ignore the buttons for making a reservation, only interested in the tour details.
     str_to_ignore = 'Reserve'
@@ -247,7 +247,7 @@ def _parse_available_tours_table(browser: ChromeWebDriver, available_tours_table
     for i, table_row in enumerate(table_rows):
         row_content = [
             col.text.strip()
-            for col in browser.find_by_tag('td', table_row, multiple=True)
+            for col in browser.find(By.TAG_NAME, 'td', table_row, multiple=True, raise_exception=True)
             if str_to_ignore not in col.text
         ]
 

@@ -45,102 +45,74 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
     # ------------- Locating Elements -------------- #
 
     @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[False] = False,
+        raise_exception: Literal[False] = False,
+    ) -> WebElement | None: ...
+
+    @overload
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[False] = False,
+        raise_exception: Literal[True],
     ) -> WebElement: ...
 
     @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[True],
+        raise_exception: bool = False,
     ) -> list[WebElement]: ...
 
     @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool
-    ) -> WebElement | list[WebElement]: ...
+    def find(
+        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool, raise_exception: bool
+    ) -> WebElement | None | list[WebElement]: ...
 
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool = False
-    ) -> WebElement | list[WebElement]:
+    def find(  # noqa: PLR0913 (too many arguments)
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: bool = False,
+        raise_exception: bool = False,
+    ) -> WebElement | None | list[WebElement]:
         """
         Find DOM element.
 
         :param locator: Locator strategy to pick a selector.
-        :param selector: String to locate a selector using the strategy.
+        :param selector: String to locate an element using the strategy.
         :param parent: DOM element in which to search. The browser by default.
         :param multiple: Whether to find multiple elements (keyword only).
+        :param raise_exception: If True, raise a NoSuchElementException instead of logging it (keyword only).
         :return: Single element: the first matching DOM element found, or None.
                  Multiple elements: a list of matching elements.
-        :raise NoSuchElementException: If no element was found.
+        :raise NoSuchElementException: If no element was found and ``raise_exception=True``.
         """
         search_element = parent or self
-        func = search_element.find_elements if multiple else search_element.find_element
-        return func(locator, selector)
+        find_func = search_element.find_elements if multiple else search_element.find_element
 
-    def find_by_class(self, class_name: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by class name.
-
-        :param class_name: Class name of HTML object.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        """
-        LOGGER.debug('Searching for DOM element with class "%s"', class_name)
+        LOGGER.debug('Searching for HTML %s with %s = %s', 'elements' if multiple else 'element', locator, selector)
         try:
-            return self._find_element(By.CLASS_NAME, class_name, parent, multiple=False)
+            return find_func(locator, selector)
         except NoSuchElementException:
-            LOGGER.error('Could not find element with class: %s', class_name)  # noqa: TRY400 (don't log stacktrace)
-            return None
-
-    @overload
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
-    ) -> WebElement | None: ...
-
-    @overload
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
-    ) -> list[WebElement]: ...
-
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: bool = False
-    ) -> WebElement | None | list[WebElement]:
-        """
-        Find DOM element by HTML tag name.
-
-        :param selector: HTML element to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :param multiple: Whether to find multiple elements (keyword only).
-        :return: Single element: the first matching DOM element found, or None.
-                 Multiple elements: a list of matching elements.
-        """
-        LOGGER.debug('Searching for HTML element "%s"', selector)
-        return self._find_element(By.TAG_NAME, selector, parent, multiple=multiple)
-
-    def find_by_xpath_or_error(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by XPATH.
-
-        :param xpath: XPATH to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        :raise NoSuchElementException: If no element was found.
-        """
-        LOGGER.debug('Searching for HTML element "%s"', xpath)
-        return self._find_element(By.XPATH, xpath, parent, multiple=False)
-
-    def find_by_xpath(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by XPATH.
-
-        :param xpath: XPATH to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        """
-        try:
-            return self.find_by_xpath_or_error(xpath, parent)
-        except NoSuchElementException:
-            LOGGER.error('Could not find element by XPATH: %s', xpath)  # noqa: TRY400 (don't log stacktrace)
+            if raise_exception:
+                raise
+            LOGGER.error('Could not find element by %s: %s', locator, selector)  # noqa: TRY400 (don't log stacktrace)
             return None
 
     # ------------ Waiting For Elements ------------ #
@@ -150,13 +122,13 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         Wait until a DOM element is visible.
 
         :param locator: Locator strategy to pick a selector.
-        :param selector: String to locate a selector using the strategy.
+        :param selector: String to locate an element using the strategy.
         :param timeout: Number of seconds before timing out.
         """
         LOGGER.debug('Waiting for element "%s" to be visible', selector)
         WebDriverWait(self, timeout).until(ec.visibility_of_element_located((locator, selector)))
 
-    # ------------------- Other -------------------- #
+    # ---------------- Screenshots ----------------- #
 
     def save_screenshot_full_page(self, path: str) -> None:
         """
@@ -170,11 +142,12 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         required_height = self.execute_script('return document.body.parentNode.scrollHeight')
         self.set_window_size(required_width, required_height)
 
-        # self.save_screenshot(path)  # has scrollbar
-        self._find_element(By.TAG_NAME, 'body').screenshot(path)  # avoids scrollbar
+        self.find(By.TAG_NAME, 'body', raise_exception=True).screenshot(path)  # avoids scrollbar
         LOGGER.info('Saved screenshot to: %s', path)
 
         self.set_window_size(original_size['width'], original_size['height'])
+
+    # --------------- Browser Utils ---------------- #
 
     def shut_down(self) -> None:
         """Close a webdriver."""
