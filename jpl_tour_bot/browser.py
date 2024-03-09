@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
 import psutil
@@ -19,7 +20,6 @@ from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, BROWSER_WINDOW_SIZE_P
 from jpl_tour_bot.log_utils import add_note
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from types import EllipsisType
 
     from selenium.webdriver.remote.webelement import WebElement
@@ -101,7 +101,7 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         :param multiple: Whether to find multiple elements (keyword only).
         :param raise_exception: If ``True``, raise a ``NoSuchElementException`` instead of logging it,
             used only when ``multiple=False`` (keyword only).
-        :param err_msg: Custom message to log if no element was found,
+        :param log_msg: Custom message to log if no element was found,
             used only when ``multiple=False`` (keyword only).
             Set to ``None`` to suppress error logging.
         :return: Single element: the first matching DOM element found, or None.
@@ -112,6 +112,18 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         find_func = search_element.find_elements if multiple else search_element.find_element
 
         LOGGER.debug('Searching for HTML %s with %s = %s', 'elements' if multiple else 'element', locator, selector)
+
+        if multiple and (raise_exception or log_msg is not Ellipsis):
+            import inspect
+
+            parent_stack_frame = inspect.stack()[1][0]
+            LOGGER.warning(
+                'Function %s (called from file "%s", line %d): Will not raise an exception if no elements are found',
+                find_func.__name__,
+                Path(parent_stack_frame.f_code.co_filename).name,
+                parent_stack_frame.f_lineno,
+            )
+
         try:
             return find_func(locator, selector)
         except NoSuchElementException as ex:
