@@ -189,18 +189,16 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
     time.sleep(5)
 
     LOGGER.info('Trying to find the error message')
-    try:
-        error_msg_element = browser.find(
-            By.XPATH, "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]", raise_exception=True
-        )
-    except NoSuchElementException:
-        # No error element was found, so a tour may be available.
-        # Catch the exception here to suppress the error message.
-        error_msg_element = None
+    error_msg_element = browser.find(
+        By.XPATH,
+        "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]",
+        log_msg=None,  # suppress logging if error element was not found
+    )
 
     notification_title_new_availability = 'Tour availability has changed'
 
     if error_msg_element:
+        # No tours are available, return early and include the website's message in a notification.
         return [Notification(notification_title_new_availability, error_msg_element.text.strip())]
 
     notifications = []
