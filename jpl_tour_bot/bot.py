@@ -246,7 +246,7 @@ def _parse_available_tours_table(browser: ChromeWebDriver, available_tours_table
     :param available_tours_table: Web element representing the table of available tours.
     :return: The details of available tours, as a multiline string representing a table.
     """
-    table_rows = browser.find(By.TAG_NAME, 'tr', available_tours_table, multiple=True)
+    table_rows = browser.find(By.TAG_NAME, 'tr', available_tours_table, multiple=True, raise_exception=True)
 
     # Ignore the buttons for making a reservation, only interested in the tour details.
     str_to_ignore = 'Reserve'
@@ -258,7 +258,7 @@ def _parse_available_tours_table(browser: ChromeWebDriver, available_tours_table
     for i, table_row in enumerate(table_rows):
         row_content = [
             col.text.strip()
-            for col in browser.find(By.TAG_NAME, 'td', table_row, multiple=True)
+            for col in browser.find(By.TAG_NAME, 'td', table_row, multiple=True, raise_exception=True)
             if str_to_ignore not in col.text
         ]
 
@@ -267,8 +267,5 @@ def _parse_available_tours_table(browser: ChromeWebDriver, available_tours_table
             table_header = row_content
         else:
             table_data_rows.append(row_content)
-
-    if not table_data_rows:
-        raise RuntimeError('')
 
     return code_block(tabulate(tabular_data=table_data_rows, headers=table_header, tablefmt='psql'), language='text')

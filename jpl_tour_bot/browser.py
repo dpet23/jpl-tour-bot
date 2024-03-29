@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
 import psutil
@@ -20,6 +19,7 @@ from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, BROWSER_WINDOW_SIZE_P
 from jpl_tour_bot.log_utils import add_note
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from types import EllipsisType
 
     from selenium.webdriver.remote.webelement import WebElement
@@ -99,10 +99,8 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         :param selector: String to locate an element using the strategy.
         :param parent: DOM element in which to search. The browser by default.
         :param multiple: Whether to find multiple elements (keyword only).
-        :param raise_exception: If ``True``, raise a ``NoSuchElementException`` instead of logging it,
-            used only when ``multiple=False`` (keyword only).
-        :param log_msg: Custom message to log if no element was found,
-            used only when ``multiple=False`` (keyword only).
+        :param raise_exception: If ``True``, raise a ``NoSuchElementException`` instead of logging it (keyword only).
+        :param log_msg: Custom message to log if no element was found (keyword only).
             Set to ``None`` to suppress error logging.
         :return: Single element: the first matching DOM element found, or None.
                  Multiple elements: a list of matching elements.
@@ -111,21 +109,15 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         search_element = parent or self
         find_func = search_element.find_elements if multiple else search_element.find_element
 
+        def _find_child_elements() -> WebElement | list[WebElement]:
+            elements = find_func(locator, selector)
+            if not elements and multiple and raise_exception:
+                raise NoSuchElementException(f'Could not find elements by {locator}: {selector}\n')
+            return elements
+
         LOGGER.debug('Searching for HTML %s with %s = %s', 'elements' if multiple else 'element', locator, selector)
-
-        if multiple and (raise_exception or log_msg is not Ellipsis):
-            import inspect
-
-            parent_stack_frame = inspect.stack()[1][0]
-            LOGGER.warning(
-                'Function %s (called from file "%s", line %d): Will not raise an exception if no elements are found',
-                find_func.__name__,
-                Path(parent_stack_frame.f_code.co_filename).name,
-                parent_stack_frame.f_lineno,
-            )
-
         try:
-            return find_func(locator, selector)
+            return _find_child_elements()
         except NoSuchElementException as ex:
             if raise_exception:
                 # Add an Exception note only if a non-default message is provided,
