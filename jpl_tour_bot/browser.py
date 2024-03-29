@@ -15,10 +15,12 @@ from selenium.webdriver.remote.webdriver import WebDriver as SeleniumRemoteWebDr
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
-from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT, BROWSER_WINDOW_SIZE_PX
+from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, BROWSER_WINDOW_SIZE_PX
+from jpl_tour_bot.log_utils import add_note
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from types import EllipsisType
 
     from selenium.webdriver.remote.webelement import WebElement
 
@@ -45,118 +47,108 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
     # ------------- Locating Elements -------------- #
 
     @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[False] = False,
+        raise_exception: Literal[False] = False,
+        log_msg: str | None | EllipsisType = ...,
+    ) -> WebElement | None: ...
+
+    @overload
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[False] = False,
+        raise_exception: Literal[True],
+        log_msg: str | None | EllipsisType = ...,
     ) -> WebElement: ...
 
     @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
+    def find(
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: Literal[True],
+        raise_exception: bool = False,
+        log_msg: str | None | EllipsisType = ...,
     ) -> list[WebElement]: ...
 
-    @overload
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool
-    ) -> WebElement | list[WebElement]: ...
-
-    def _find_element(
-        self, locator: str, selector: str, parent: WebElement | None = None, *, multiple: bool = False
-    ) -> WebElement | list[WebElement]:
+    def find(  # noqa: PLR0913 (too many arguments)
+        self,
+        locator: str,
+        selector: str,
+        parent: WebElement | None = None,
+        *,
+        multiple: bool = False,
+        raise_exception: bool = False,
+        log_msg: str | None | EllipsisType = ...,
+    ) -> WebElement | None | list[WebElement]:
         """
         Find DOM element.
 
         :param locator: Locator strategy to pick a selector.
-        :param selector: String to locate a selector using the strategy.
+        :param selector: String to locate an element using the strategy.
         :param parent: DOM element in which to search. The browser by default.
         :param multiple: Whether to find multiple elements (keyword only).
+        :param raise_exception: If ``True``, raise a ``NoSuchElementException`` instead of logging it (keyword only).
+        :param log_msg: Custom message to log if no element was found (keyword only).
+            Set to ``None`` to suppress error logging.
         :return: Single element: the first matching DOM element found, or None.
                  Multiple elements: a list of matching elements.
-        :raise NoSuchElementException: If no element was found.
+        :raise NoSuchElementException: If no element was found and ``raise_exception=True``.
         """
         search_element = parent or self
-        func = search_element.find_elements if multiple else search_element.find_element
-        return func(locator, selector)
+        find_func = search_element.find_elements if multiple else search_element.find_element
 
-    def find_by_class(self, class_name: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by class name.
+        def _find_child_elements() -> WebElement | list[WebElement]:
+            elements = find_func(locator, selector)
+            if not elements and multiple and raise_exception:
+                raise NoSuchElementException(f'Could not find elements by {locator}: {selector}\n')
+            return elements
 
-        :param class_name: Class name of HTML object.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        """
-        LOGGER.debug('Searching for DOM element with class "%s"', class_name)
+        LOGGER.debug('Searching for HTML %s with %s = %s', 'elements' if multiple else 'element', locator, selector)
         try:
-            return self._find_element(By.CLASS_NAME, class_name, parent, multiple=False)
-        except NoSuchElementException:
-            LOGGER.error('Could not find element with class: %s', class_name)  # noqa: TRY400 (don't log stacktrace)
-            return None
+            return _find_child_elements()
+        except NoSuchElementException as ex:
+            if raise_exception:
+                # Add an Exception note only if a non-default message is provided,
+                # since the default message repeats the stacktrace info.
+                if isinstance(log_msg, str):
+                    add_note(ex, log_msg)
+                raise
 
-    @overload
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[False] = False
-    ) -> WebElement | None: ...
+            if log_msg is not None:
+                # Logging hasn't been disabled by the caller.
+                # Use a default message if nothing more specific was provided.
+                if log_msg is Ellipsis:
+                    log_msg = f'Could not find element by {locator}: {selector}'
+                LOGGER.error(log_msg)  # noqa: TRY400 (don't log stacktrace)
 
-    @overload
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: Literal[True]
-    ) -> list[WebElement]: ...
-
-    def find_by_tag(
-        self, selector: str, parent: WebElement | None = None, *, multiple: bool = False
-    ) -> WebElement | None | list[WebElement]:
-        """
-        Find DOM element by HTML tag name.
-
-        :param selector: HTML element to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :param multiple: Whether to find multiple elements (keyword only).
-        :return: Single element: the first matching DOM element found, or None.
-                 Multiple elements: a list of matching elements.
-        """
-        LOGGER.debug('Searching for HTML element "%s"', selector)
-        return self._find_element(By.TAG_NAME, selector, parent, multiple=multiple)
-
-    def find_by_xpath_or_error(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by XPATH.
-
-        :param xpath: XPATH to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        :raise NoSuchElementException: If no element was found.
-        """
-        LOGGER.debug('Searching for HTML element "%s"', xpath)
-        return self._find_element(By.XPATH, xpath, parent, multiple=False)
-
-    def find_by_xpath(self, xpath: str, parent: WebElement | None = None) -> WebElement | None:
-        """
-        Find DOM element by XPATH.
-
-        :param xpath: XPATH to search for.
-        :param parent: DOM element in which to search. The browser by default.
-        :return: The first matching DOM element found, or None.
-        """
-        try:
-            return self.find_by_xpath_or_error(xpath, parent)
-        except NoSuchElementException:
-            LOGGER.error('Could not find element by XPATH: %s', xpath)  # noqa: TRY400 (don't log stacktrace)
             return None
 
     # ------------ Waiting For Elements ------------ #
 
-    def wait_until_visible(self, locator: str, selector: str, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT) -> None:
+    def wait_until_visible(self, locator: str, selector: str, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC) -> None:
         """
         Wait until a DOM element is visible.
 
         :param locator: Locator strategy to pick a selector.
-        :param selector: String to locate a selector using the strategy.
+        :param selector: String to locate an element using the strategy.
         :param timeout: Number of seconds before timing out.
         """
         LOGGER.debug('Waiting for element "%s" to be visible', selector)
         WebDriverWait(self, timeout).until(ec.visibility_of_element_located((locator, selector)))
 
-    # ------------------- Other -------------------- #
+    # ---------------- Screenshots ----------------- #
 
     def save_screenshot_full_page(self, path: str) -> None:
         """
@@ -170,11 +162,12 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         required_height = self.execute_script('return document.body.parentNode.scrollHeight')
         self.set_window_size(required_width, required_height)
 
-        # self.save_screenshot(path)  # has scrollbar
-        self._find_element(By.TAG_NAME, 'body').screenshot(path)  # avoids scrollbar
+        self.find(By.TAG_NAME, 'body', raise_exception=True).screenshot(path)  # avoids scrollbar
         LOGGER.info('Saved screenshot to: %s', path)
 
         self.set_window_size(original_size['width'], original_size['height'])
+
+    # --------------- Browser Utils ---------------- #
 
     def shut_down(self) -> None:
         """Close a webdriver."""
@@ -189,11 +182,14 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
     """Starts a new Chrome session. Supports custom helper functions."""
 
     @staticmethod
-    def start_new_session(executable_path: Path, *, headless: bool) -> ChromeWebDriver:
+    def start_new_session(
+        executable_path: Path, page_load_timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, *, headless: bool
+    ) -> ChromeWebDriver:
         """
         Start a new browser session.
 
         :param executable_path: Full path to the webdriver binary.
+        :param page_load_timeout: Amount of time to wait for a page load to complete.
         :param headless: Whether to start the browser UI (keyword only).
         :return: A webdriver running Chrome.
         :raise ProcessLookupError: If a process already exists for the executable.
@@ -216,7 +212,7 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
 
         browser = ChromeWebDriver(service=ChromeService(str(executable_path)), options=options)
 
-        browser.set_page_load_timeout(BROWSER_DEFAULT_PAGE_TIMEOUT)
+        browser.set_page_load_timeout(page_load_timeout)
         browser.set_window_size(*BROWSER_WINDOW_SIZE_PX)
 
         LOGGER.info(

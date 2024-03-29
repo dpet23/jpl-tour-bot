@@ -84,14 +84,14 @@ def post_discord(webhook_url: str, messages: list[Notification], warnings: list[
     warning_fields: list[dict] = []
     for msg in warnings:
         warn_type, warn_msg = msg.split(':', 1)
-        warning_fields.append(Field(name=warn_type, value=warn_msg).as_dict())
+        warning_fields.append(Field(name=warn_type.strip(), value=warn_msg.strip()).as_dict())
     if warning_fields:
         embeds.append(Embed(color=COLOR_GOOGLE_YELLOW, fields=warning_fields).as_dict())
 
     error_fields: list[dict] = []
     for msg in errors:
         exc_type, exc_msg = msg.split(':', 1)
-        error_fields.append(Field(name=exc_type, value=exc_msg).as_dict())
+        error_fields.append(Field(name=exc_type.strip(), value=exc_msg.strip()).as_dict())
     if error_fields:
         embeds.append(Embed(color=COLOR_GOOGLE_RED, fields=error_fields).as_dict())
 
