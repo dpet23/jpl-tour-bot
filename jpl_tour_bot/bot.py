@@ -10,7 +10,6 @@ from textwrap import indent
 from typing import TYPE_CHECKING, NamedTuple
 
 from markdown_strings import code_block  # type: ignore[import-untyped]
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
@@ -144,31 +143,45 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
     :param tour_size: The number of visitors, must be one of the form's allowed values.
     """
     LOGGER.info('Finding the tour search form')
-    text_to_search = 'Reserve Here'
-    search_form_element = browser.find(By.XPATH, f"//h1[text()='{text_to_search}']/following-sibling::div")
-    if not search_form_element:
-        raise NoSuchElementException('Could not find tour search form')
+    search_form_element = browser.find(
+        By.XPATH,
+        "//h1[text()='Reserve Here']/following-sibling::div",
+        raise_exception=True,
+        log_msg='Could not find tour search form',
+    )
 
     LOGGER.info('Selecting the tour type: "%s"', tour_type)
-    tour_type_select = browser.find(By.XPATH, "//select[@name='categoryId']", parent=search_form_element)
-    if not tour_type_select:
-        raise NoSuchElementException('Could not find tour type select box')
+    tour_type_select = browser.find(
+        By.XPATH,
+        "//select[@name='categoryId']",
+        parent=search_form_element,
+        raise_exception=True,
+        log_msg='Could not find tour type select box',
+    )
     Select(tour_type_select).select_by_visible_text(tour_type)
 
     time.sleep(1)
 
     LOGGER.info('Entering the number of visitors: %d', tour_size)
-    tour_size_input = browser.find(By.XPATH, "//input[@name='groupSize']", parent=search_form_element)
-    if not tour_size_input:
-        raise NoSuchElementException('Could not find tour size input box')
+    tour_size_input = browser.find(
+        By.XPATH,
+        "//input[@name='groupSize']",
+        parent=search_form_element,
+        raise_exception=True,
+        log_msg='Could not find tour size input box',
+    )
     tour_size_input.send_keys(str(tour_size))
 
     time.sleep(1)
 
     LOGGER.info('Submitting the tour search form')
-    submit_form_button = browser.find(By.XPATH, "//button[contains(@class, 'btn-submit')]", parent=search_form_element)
-    if not submit_form_button:
-        raise NoSuchElementException('Could not find submit button for the tour search form')
+    submit_form_button = browser.find(
+        By.XPATH,
+        "//button[contains(@class, 'btn-submit')]",
+        parent=search_form_element,
+        raise_exception=True,
+        log_msg='Could not find submit button for the tour search form',
+    )
     if not submit_form_button.is_enabled():
         raise RuntimeError('Submit button for the tour search form is not enabled')
     try:
@@ -189,18 +202,16 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> list[Notifi
     time.sleep(5)
 
     LOGGER.info('Trying to find the error message')
-    try:
-        error_msg_element = browser.find(
-            By.XPATH, "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]", raise_exception=True
-        )
-    except NoSuchElementException:
-        # No error element was found, so a tour may be available.
-        # Catch the exception here to suppress the error message.
-        error_msg_element = None
+    error_msg_element = browser.find(
+        By.XPATH,
+        "//*[@id='primary_column']/div/div/label[contains(@class, 'err')]",
+        log_msg=None,  # suppress logging if error element was not found
+    )
 
     notification_title_new_availability = 'Tour availability has changed'
 
     if error_msg_element:
+        # No tours are available, return early and include the website's message in a notification.
         return [Notification(notification_title_new_availability, error_msg_element.text.strip())]
 
     notifications = []

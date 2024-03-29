@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+from collections.abc import Sequence
 from traceback import format_exception
 from typing import TYPE_CHECKING
 
@@ -35,11 +37,7 @@ class _CaptureHandler(logging.Handler):
             issue: Warning | Exception = record.exc_info[1]
 
             # Add the log message as a note to the Exception (PEP 678).
-            # Use a custom implementation for compatibility before Python 3.11.
-            # See: https://docs.python.org/3/library/exceptions.html#BaseException.__notes__
-            if getattr(issue, '__notes__', None) is None:
-                issue.__notes__ = []  # type: ignore[union-attr]
-            issue.__notes__.append(log_message)  # type: ignore[union-attr]
+            add_note(issue, log_message)
 
             # Store the exception message and notes, without the stacktrace.
             log_message = _format_exception_message(issue, include_tb=False)
@@ -92,6 +90,37 @@ class StoreWarningsErrors:
         return exc_obj is None or isinstance(exc_obj, Exception)
 
 
+def add_note(issue: Warning | Exception, note: str) -> None:
+    """
+    Add the string ``note`` to the exception's notes, which appear in the traceback after the exception string.
+
+    Use a custom implementation for compatibility before Python 3.11.
+    See: https://docs.python.org/3/library/exceptions.html#BaseException.__notes__
+
+    This implementation mirrors the CPython implementation.
+    See: ``BaseException_add_note`` in: https://github.com/python/cpython/blob/main/Objects/exceptions.c
+    """
+    # Use built-in implementation on Python 3.11 onwards.
+    if sys.version_info[:2] >= (3, 11):
+        issue.add_note(note)
+        return
+
+    # Use the custom implementation on earlier Python versions.
+    # The built-in Exception type doesn't have a `__notes__` field;
+    # type checking is performed in code, so ignore linter errors here.
+
+    if not isinstance(note, str):
+        raise TypeError('note must be a str, not %s', type(note))
+
+    if getattr(issue, '__notes__', None) is None:
+        issue.__notes__ = []  # type: ignore[union-attr]
+
+    if not isinstance(issue.__notes__, Sequence):  # type: ignore[union-attr]
+        raise TypeError('Cannot add note: __notes__ is not a list')
+
+    issue.__notes__.append(note)  # type: ignore[union-attr, attr-defined]
+
+
 def _format_exception_message(issue: Warning | Exception, *, include_tb: bool) -> str:
     """
     Format the exception message and notes as a string, optionally including the stacktrace.
@@ -104,10 +133,11 @@ def _format_exception_message(issue: Warning | Exception, *, include_tb: bool) -
     if (st := getattr(issue, 'stacktrace', None)) and isinstance(st, list):
         issue.stacktrace = None  # type: ignore[union-attr]
 
-    # # FUTURE: for py < 3.11
-    # if isinstance(self.__notes__, collections.abc.Sequence):
-    #     for note in self.__notes__:
-    #         note = _safe_string(note, 'note')
-    #         yield from [l + '\n' for l in note.split('\n')]
+    # Always include any exception notes in the formatted message.
+    # The `traceback.format_exception()` function includes the notes from Python 3.11 onwards,
+    # but a custom implementation is required in Python 3.10.
+    notes = ''
+    if sys.version_info[:2] <= (3, 10) and hasattr(issue, '__notes__') and isinstance(issue.__notes__, Sequence):
+        notes = '\n' + '\n'.join(note for note in issue.__notes__)
 
-    return ''.join(format_exception(type(issue), issue, issue.__traceback__ if include_tb else None)).strip()
+    return ''.join(format_exception(type(issue), issue, issue.__traceback__ if include_tb else None)).strip() + notes
