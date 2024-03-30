@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import requests
 
+from jpl_tour_bot.state import State
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
@@ -75,7 +77,7 @@ def post_discord(webhook_url: str, messages: list[Notification], warnings: list[
     for notification in messages:
         if 'available tour' in notification.content or notification.title == 'Tour details':
             message_color = COLOR_GOOGLE_GREEN
-        elif '(empty)' in notification.content:
+        elif State.NEXT_TOUR_MSG in notification.content:
             message_color = COLOR_GOOGLE_BLUE
         message_fields.append(Field(name=notification.title, value=notification.content).as_dict())
     if message_fields:

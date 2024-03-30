@@ -17,23 +17,20 @@ LOGGER = logging.getLogger(__name__)
 class State:
     """State of the JPL tours, saved between script executions."""
 
-    BROWSER_SESSION: str
-    NEXT_TOUR_MSG: str
-    TOUR_AVAILABLE: str
-
-    @staticmethod
-    def _default() -> State:
-        return State('', '(empty)', '')
+    BROWSER_SESSION: str = ''
+    NEXT_TOUR_MSG: str = '(empty)'
+    TOUR_AVAILABLE: str = ''
 
     @classmethod
     def from_file(cls, path: Path) -> State:
         """
-        Read and parse a state file. Create a default state if none already exists.
+        Read and parse a state file.
 
         :param path: Path to the state file to read.
+        :return: The state parsed from the file, or a default state on error.
         """
         if not path.is_file():
-            cls._default().save_to_file(path)
+            return State()
 
         with path.open(mode='r', encoding='utf-8') as state_file:
             state_json = json.load(state_file)
@@ -46,7 +43,7 @@ class State:
                 str(ex),
                 json.dumps(state_json, indent=2),
             )
-            return cls._default()
+            return State()
 
     def save_to_file(self, path: Path) -> None:
         """

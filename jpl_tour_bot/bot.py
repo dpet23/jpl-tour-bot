@@ -16,11 +16,10 @@ from tabulate import tabulate
 
 from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
+from jpl_tour_bot.state import State
 
 if TYPE_CHECKING:
     from selenium.webdriver.remote.webelement import WebElement
-
-    from jpl_tour_bot.state import State
 
 LOGGER = logging.getLogger(__name__)
 
@@ -122,7 +121,7 @@ def _get_next_tour_release_date(browser: ChromeWebDriver) -> str:
     :param browser: The open browser instance.
     :return: The message announcing the date of the next tour release, from the JPL website.
     """
-    next_tour_msg = '(empty)'
+    next_tour_msg = State.NEXT_TOUR_MSG
 
     text_to_search = 'Next Tours Release Date'
     LOGGER.info('Searching for the %s', text_to_search.lower())
