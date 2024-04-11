@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 _SCRIPT_PATH = Path(__file__).parent
@@ -22,6 +23,7 @@ class Args:
     browser_binary: Path
     ui: bool
     page_timeout: int
+    reserve_date_range: list[datetime]
     notify: str | None
     verbose: bool
     wait: list[int]
@@ -75,6 +77,15 @@ class Args:
                 'maximum time to wait for a webpage to load '
                 f'(default: {BROWSER_DEFAULT_PAGE_TIMEOUT_SEC/60:.0f} minutes)'
             ),
+        )
+        arg_parser.add_argument(
+            '-r',
+            '--reserve-date-range',
+            action='store',
+            nargs=2,
+            metavar=('MIN', 'MAX'),
+            type=datetime.fromisoformat,
+            help='Press the Reserve button for the 1st tour within the date range (in ISO 8601 format)',
         )
         arg_parser.add_argument(
             '-n',
