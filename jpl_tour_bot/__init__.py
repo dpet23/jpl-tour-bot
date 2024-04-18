@@ -23,10 +23,10 @@ class Args:
     browser_binary: Path
     ui: bool
     page_timeout: int
-    reserve_date_range: list[datetime]
+    reserve_date_range: list[datetime] | None
     notify: str | None
     verbose: bool
-    wait: list[int]
+    wait: list[int] | None
 
     @staticmethod
     def parse_args() -> Args:

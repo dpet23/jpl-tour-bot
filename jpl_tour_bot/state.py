@@ -7,6 +7,8 @@ import logging
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import TYPE_CHECKING, Any
 
+from jpl_tour_bot.notification import Notification
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -20,6 +22,7 @@ class State:
     BROWSER_SESSION: str = ''
     NEXT_TOUR_MSG: str = '(empty)'
     TOUR_AVAILABLE: str = ''
+    TOUR_TABLE: str = ''
 
     @classmethod
     def from_file(cls, path: Path) -> State:
@@ -44,6 +47,25 @@ class State:
                 json.dumps(state_json, indent=2),
             )
             return State()
+
+    def set_field(self, field: str, msg: str, notification_title: str) -> Notification | None:
+        """
+        Set the contents of a field, generate a Notification, and log a message.
+
+        :param field: Name of the state field to set.
+        :param msg: The value to set for the field.
+        :param notification_title: Title for the generated notification.
+        :return: A Notification to report te change, or None if no changes were made to the field.
+        :raise AttributeError: If the state does not contain a field with the given name.
+        """
+        if msg == getattr(self, field):
+            return None
+
+        setattr(self, field, msg)
+
+        notification = Notification(notification_title, msg)
+        LOGGER.info(notification)
+        return notification
 
     def save_to_file(self, path: Path) -> None:
         """

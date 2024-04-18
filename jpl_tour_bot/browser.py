@@ -213,7 +213,8 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
         browser = ChromeWebDriver(service=ChromeService(str(executable_path)), options=options)
 
         browser.set_page_load_timeout(page_load_timeout)
-        browser.set_window_size(*BROWSER_WINDOW_SIZE_PX)
+        if headless:
+            browser.set_window_size(*BROWSER_WINDOW_SIZE_PX)
 
         LOGGER.info(
             'Started %s %s (session %s)',
