@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, NamedTuple
 
 from markdown_strings import code_block  # type: ignore[import-untyped]
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
@@ -30,7 +31,7 @@ class Tour(NamedTuple):
 
     DATE: str
     TIMES: str
-    RESERVE_BUTTON: WebElement
+    RESERVE_BUTTON: WebElement | None
 
 
 def run_bot(args: Args, state: State) -> list[Notification]:
@@ -63,11 +64,7 @@ def run_bot(args: Args, state: State) -> list[Notification]:
         notification_messages, tour_details = _scrape_tour(browser, state)
 
         if args.reserve_date_range and tour_details:
-            if args.ui:
-                _open_tour_reservation(browser, tour_details, args.reserve_date_range)
-            else:
-                LOGGER.warning('Cannot click the reservation button for a tour: the browser UI is not being displayed')
-                # FUTURE: `--reserve-date-range` implies `--ui`
+            _open_tour_reservation(browser, tour_details, args.reserve_date_range)
 
         return notification_messages
     finally:
@@ -288,7 +285,6 @@ def _parse_available_tours_table(
                 By.TAG_NAME,
                 'button',
                 all_content_cols[index_row + index_button],
-                raise_exception=True,  # FUTURE: don't raise?
                 log_msg=f'Could not find Reservation button for row #{r+1}',
             ),
         )
@@ -334,11 +330,13 @@ def _open_tour_reservation(
 
     # Click the Reservation button for the 1st tour that matches the date criteria.
     selected_tour = tours_in_range[0]
+    selected_tour_details = f'{selected_tour.DATE}, {selected_tour.TIMES}'
+    if not selected_tour.RESERVE_BUTTON:
+        raise NoSuchElementException(f'Could not retrieve button for tour: {selected_tour_details}\n')
     LOGGER.warning(
-        'Pressing "%s" button for tour: %s, %s',
+        'Pressing "%s" button for tour: %s',
         selected_tour.RESERVE_BUTTON.text,
-        selected_tour.DATE,
-        selected_tour.TIMES,
+        selected_tour_details,
     )
     selected_tour.RESERVE_BUTTON.click()
 

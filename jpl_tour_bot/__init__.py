@@ -85,7 +85,7 @@ class Args:
             nargs=2,
             metavar=('MIN', 'MAX'),
             type=datetime.fromisoformat,
-            help='Press the Reserve button for the 1st tour within the date range (in ISO 8601 format)',
+            help='Press the Reserve button for the 1st tour within the date range (in ISO 8601 format), implies --ui',
         )
         arg_parser.add_argument(
             '-n',
@@ -109,4 +109,11 @@ class Args:
             type=int,
             help='before running the bot, wait some time between MIN and MAX seconds',
         )
-        return Args(**vars(arg_parser.parse_args()))
+
+        args = Args(**vars(arg_parser.parse_args()))
+
+        # `--reserve-date-range` implies `--ui`
+        if args.reserve_date_range:
+            args.ui = True
+
+        return args
