@@ -25,7 +25,6 @@ class Args:
     page_timeout: int
     reserve_date_range: list[datetime] | None
     notify: str | None
-    verbose: bool
     wait: list[int] | None
 
     @staticmethod
@@ -93,12 +92,6 @@ class Args:
             action='store',
             metavar='DEST',
             help='set the notification Discord webhook',
-        )
-        arg_parser.add_argument(
-            '-v',
-            '--verbose',
-            action='store_true',
-            help='enable verbose logging',
         )
         arg_parser.add_argument(
             '-w',
