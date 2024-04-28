@@ -63,8 +63,11 @@ def run_bot(args: Args, state: State) -> list[Notification]:
     try:
         notification_messages, tour_details = _scrape_tour(browser, state)
 
-        if args.reserve_date_range and tour_details:
-            _open_tour_reservation(browser, tour_details, args.reserve_date_range)
+        if args.reserve_date_range and tour_details and state.PRESS_RESERVE_BUTTON:
+            continue_pressing_reserve_button = _open_tour_reservation(browser, tour_details, args.reserve_date_range)
+            _ = state.set_field(
+                'PRESS_RESERVE_BUTTON', continue_pressing_reserve_button, 'Continue pressing reserve button'
+            )
 
         return notification_messages
     finally:
@@ -310,7 +313,7 @@ def _format_available_tours_table(tour_details: list[Tour], table_header: list[s
 
 def _open_tour_reservation(
     browser: ChromeWebDriver, tour_details: list[Tour], reserve_date_range: list[datetime]
-) -> None:
+) -> bool:
     """
     Press the Reserve button for a tour.
 
@@ -318,6 +321,8 @@ def _open_tour_reservation(
     :param tour_details: The details of available tours.
     :param reserve_date_range: Only consider tours in this date range (inclusive).
     """
+    continue_pressing_reserve_button = True
+
     # Find all tours that match the date criteria.
     tours_in_range = [
         tour
@@ -326,7 +331,7 @@ def _open_tour_reservation(
     ]
 
     if not tours_in_range:
-        return
+        return continue_pressing_reserve_button
 
     # Click the Reservation button for the 1st tour that matches the date criteria.
     selected_tour = tours_in_range[0]
@@ -354,4 +359,10 @@ def _open_tour_reservation(
     else:
         LOGGER.info('Finished waiting.')
 
-    # FUTURE: set state to prevent future button clicks
+    try:
+        made_booking = input('\nWAS THE BOOKING SUCCESSFUL? (y/n): ')
+    except KeyboardInterrupt:
+        pass  # use default value
+    else:
+        continue_pressing_reserve_button = not any(s == made_booking.lower().strip() for s in ('y', 'yes', 't', 'true'))
+    return continue_pressing_reserve_button

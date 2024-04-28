@@ -23,6 +23,7 @@ class State:
     NEXT_TOUR_MSG: str = '(empty)'
     TOUR_AVAILABLE: str = ''
     TOUR_TABLE: str = ''
+    PRESS_RESERVE_BUTTON: bool = True
 
     @classmethod
     def from_file(cls, path: Path) -> State:
@@ -48,7 +49,7 @@ class State:
             )
             return State()
 
-    def set_field(self, field: str, msg: str, notification_title: str) -> Notification | None:
+    def set_field(self, field: str, msg: str | bool, notification_title: str) -> Notification | None:
         """
         Set the contents of a field, generate a Notification, and log a message.
 
@@ -63,7 +64,7 @@ class State:
 
         setattr(self, field, msg)
 
-        notification = Notification(notification_title, msg)
+        notification = Notification(notification_title, str(msg))
         LOGGER.info(notification)
         return notification
 
