@@ -7,6 +7,8 @@ import logging
 from dataclasses import asdict, dataclass, is_dataclass
 from typing import TYPE_CHECKING, Any
 
+from jpl_tour_bot.notification import Notification
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -17,23 +19,22 @@ LOGGER = logging.getLogger(__name__)
 class State:
     """State of the JPL tours, saved between script executions."""
 
-    BROWSER_SESSION: str
-    NEXT_TOUR_MSG: str
-    TOUR_AVAILABLE: str
-
-    @staticmethod
-    def _default() -> State:
-        return State('', '(empty)', '')
+    BROWSER_SESSION: str = ''
+    NEXT_TOUR_MSG: str = '(empty)'
+    TOUR_AVAILABLE: str = ''
+    TOUR_TABLE: str = ''
+    PRESS_RESERVE_BUTTON: bool = True
 
     @classmethod
     def from_file(cls, path: Path) -> State:
         """
-        Read and parse a state file. Create a default state if none already exists.
+        Read and parse a state file.
 
         :param path: Path to the state file to read.
+        :return: The state parsed from the file, or a default state on error.
         """
         if not path.is_file():
-            cls._default().save_to_file(path)
+            return State()
 
         with path.open(mode='r', encoding='utf-8') as state_file:
             state_json = json.load(state_file)
@@ -46,7 +47,26 @@ class State:
                 str(ex),
                 json.dumps(state_json, indent=2),
             )
-            return cls._default()
+            return State()
+
+    def set_field(self, field: str, msg: str | bool, notification_title: str) -> Notification | None:
+        """
+        Set the contents of a field, generate a Notification, and log a message.
+
+        :param field: Name of the state field to set.
+        :param msg: The value to set for the field.
+        :param notification_title: Title for the generated notification.
+        :return: A Notification to report te change, or None if no changes were made to the field.
+        :raise AttributeError: If the state does not contain a field with the given name.
+        """
+        if msg == getattr(self, field):
+            return None
+
+        setattr(self, field, msg)
+
+        notification = Notification(notification_title, str(msg))
+        LOGGER.info(notification)
+        return notification
 
     def save_to_file(self, path: Path) -> None:
         """

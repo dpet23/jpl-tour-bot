@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 _SCRIPT_PATH = Path(__file__).parent
@@ -22,9 +23,10 @@ class Args:
     browser_binary: Path
     ui: bool
     page_timeout: int
+    reserve_date_range: list[datetime] | None
     notify: str | None
     verbose: bool
-    wait: list[int]
+    wait: list[int] | None
 
     @staticmethod
     def parse_args() -> Args:
@@ -77,6 +79,15 @@ class Args:
             ),
         )
         arg_parser.add_argument(
+            '-r',
+            '--reserve-date-range',
+            action='store',
+            nargs=2,
+            metavar=('MIN', 'MAX'),
+            type=datetime.fromisoformat,
+            help='Press the Reserve button for the 1st tour within the date range (in ISO 8601 format), implies --ui',
+        )
+        arg_parser.add_argument(
             '-n',
             '--notify',
             action='store',
@@ -98,4 +109,11 @@ class Args:
             type=int,
             help='before running the bot, wait some time between MIN and MAX seconds',
         )
-        return Args(**vars(arg_parser.parse_args()))
+
+        args = Args(**vars(arg_parser.parse_args()))
+
+        # `--reserve-date-range` implies `--ui`
+        if args.reserve_date_range:
+            args.ui = True
+
+        return args
