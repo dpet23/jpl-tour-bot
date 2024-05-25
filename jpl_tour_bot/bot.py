@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
 
-from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, Args
+from jpl_tour_bot import SCREENSHOT_PATH, TOUR_SIZE, TOUR_TYPE, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
 from jpl_tour_bot.state import State
 
@@ -98,7 +98,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> tuple[list[Notificat
     time.sleep(5)
 
     # Search for available tours.
-    _submit_tour_search_form(browser, tour_type='Visitor Day Tour', tour_size=1)
+    _submit_tour_search_form(browser)
 
     # Get details of available tours, and check if the availability has changed.
     tour_availability_msg = _get_tour_availability_after_search(browser)
@@ -143,13 +143,11 @@ def _get_next_tour_release_date(browser: ChromeWebDriver) -> str:
     return next_tour_msg
 
 
-def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_size: int) -> None:
+def _submit_tour_search_form(browser: ChromeWebDriver) -> None:
     """
     Fill out and submit the web form, searching for available tours.
 
     :param browser: The open browser instance.
-    :param tour_type: The type of tour to search for, must be one of the values from the web dropdown.
-    :param tour_size: The number of visitors, must be one of the form's allowed values.
     """
     LOGGER.info('Finding the tour search form')
     search_form_element = browser.find(
@@ -159,7 +157,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         log_msg='Could not find tour search form',
     )
 
-    LOGGER.info('Selecting the tour type: "%s"', tour_type)
+    LOGGER.info('Selecting the tour type: "%s"', TOUR_TYPE)
     tour_type_select = browser.find(
         By.XPATH,
         ".//select[@name='categoryId']",
@@ -167,11 +165,11 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise_exception=True,
         log_msg='Could not find tour type select box',
     )
-    Select(tour_type_select).select_by_visible_text(tour_type)
+    Select(tour_type_select).select_by_visible_text(TOUR_TYPE)
 
     time.sleep(1)
 
-    LOGGER.info('Entering the number of visitors: %d', tour_size)
+    LOGGER.info('Entering the number of visitors: %d', TOUR_SIZE)
     tour_size_input = browser.find(
         By.XPATH,
         ".//input[@name='groupSize']",
@@ -179,7 +177,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise_exception=True,
         log_msg='Could not find tour size input box',
     )
-    tour_size_input.send_keys(str(tour_size))
+    tour_size_input.send_keys(str(TOUR_SIZE))
 
     time.sleep(1)
 

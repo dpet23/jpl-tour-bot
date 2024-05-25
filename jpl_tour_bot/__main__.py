@@ -42,7 +42,6 @@ def main() -> None:
         LOGGER.info('Nothing to post')
 
     # Save the updated state back to the file.
-    # FUTURE: modify a copy of the `state`, and write back tour msg/avail only after notification sent
     if state is not None:
         state.save_to_file(STATE_FILE)
 
