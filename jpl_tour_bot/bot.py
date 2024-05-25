@@ -195,8 +195,21 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise RuntimeError('Submit button for the tour search form is not enabled')
     try:
         submit_form_button.click()
-    except Exception:
-        raise RuntimeError("Can't click on %s", submit_form_button.get_attribute('outerHTML')) from None
+    except Exception as e:
+        raise RuntimeError("Can't click on %s", submit_form_button.get_attribute('outerHTML')) from e
+
+    # Wait until the gear icon appears (indicating the form is being submitted).
+    cog_icon_class = 'fa-cog'
+    browser.wait_until_visibility(
+        By.CLASS_NAME,
+        cog_icon_class,
+        visible=True,
+        timeout=min(5, browser.timeouts._page_load / 1000),  # type: ignore[attr-defined]
+    )
+
+    # Wait until the gear icon disappears (the form has been submitted).
+    # At busy times, when new tours are being released, the icon may not disappear. Time out after a while to retry.
+    browser.wait_until_visibility(By.CLASS_NAME, cog_icon_class, visible=False)
 
 
 def _get_tour_availability_after_search(browser: ChromeWebDriver) -> str:
@@ -207,7 +220,7 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> str:
     :return: The availability of the next tours, from the JPL website.
     """
     LOGGER.info('Waiting for the tour search to load')
-    browser.wait_until_visible(By.XPATH, "//*[@id='primary_column']/div/table")
+    browser.wait_until_visibility(By.CLASS_NAME, 'tour_type_table', visible=True)
     time.sleep(5)
 
     LOGGER.info('Trying to find the error message')
@@ -346,7 +359,9 @@ def _open_tour_reservation(
     selected_tour.RESERVE_BUTTON.click()
 
     # Wait until the reservation page loads and the timer starts counting down.
-    browser.wait_until_visible(By.XPATH, "//div[contains(@class, 'clock') and normalize-space(text())]")
+    browser.wait_until_visibility(
+        By.XPATH, "//div[contains(@class, 'clock') and normalize-space(text())]", visible=True
+    )
 
     # Wait for manual completion of the booking form.
     time_to_wait = datetime.strptime(browser.find(By.CLASS_NAME, 'clock', raise_exception=True).text, '%M:%S')
