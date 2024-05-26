@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import random
+import signal
+import sys
 import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, NamedTuple
@@ -14,7 +17,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
 
-from jpl_tour_bot import SCREENSHOT_PATH, TOUR_SIZE, TOUR_TYPE, URL_JPL_TOUR, Args
+from jpl_tour_bot import SCREENSHOT_PATH, STATE_FILE, TOUR_SIZE, TOUR_TYPE, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
 from jpl_tour_bot.state import State
 
@@ -364,7 +367,14 @@ def _open_tour_reservation(
     # Wait for manual completion of the booking form.
     time_to_wait = datetime.strptime(browser.find(By.CLASS_NAME, 'clock', raise_exception=True).text, '%M:%S')
     timedelta_to_wait = timedelta(minutes=time_to_wait.minute + 5, seconds=time_to_wait.second)
-    LOGGER.info('\n\tWaiting %s to complete the booking form.\n\tUse Ctrl+C to continue.', timedelta_to_wait)
+    cancel_signal = signal.SIGINT
+    LOGGER.info(
+        '\n\tWaiting %s to complete the booking form.\n\tUse Ctrl+C (%s or signal %d) to continue.\n\tProcess ID: %d',
+        timedelta_to_wait,
+        cancel_signal.name,
+        cancel_signal.value,
+        os.getpid(),
+    )
     try:
         time.sleep(timedelta_to_wait.total_seconds())
     except KeyboardInterrupt:
@@ -372,10 +382,21 @@ def _open_tour_reservation(
     else:
         LOGGER.info('Finished waiting.')
 
-    try:
-        made_booking = input('\nWAS THE BOOKING SUCCESSFUL? (y/n): ')
-    except KeyboardInterrupt:
-        pass  # use default value
+    if sys.stdin.isatty():
+        try:
+            made_booking = input('\nWAS THE BOOKING SUCCESSFUL? (y/n): ')
+        except KeyboardInterrupt:
+            pass  # use default value
+        else:
+            continue_pressing_reserve_button = not any(
+                s == made_booking.lower().strip() for s in ('y', 'yes', 't', 'true')
+            )
     else:
-        continue_pressing_reserve_button = not any(s == made_booking.lower().strip() for s in ('y', 'yes', 't', 'true'))
+        LOGGER.warning(
+            (
+                'Cannot read input from `stdin`. '
+                'If the booking was successful, please update `PRESS_RESERVE_BUTTON` in: %s'
+            ),
+            STATE_FILE.absolute(),
+        )
     return continue_pressing_reserve_button
