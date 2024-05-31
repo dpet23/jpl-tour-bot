@@ -19,6 +19,7 @@ from jpl_tour_bot import BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, BROWSER_WINDOW_SIZE_P
 from jpl_tour_bot.log_utils import add_note
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
     from types import EllipsisType
 
@@ -137,16 +138,36 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
 
     # ------------ Waiting For Elements ------------ #
 
-    def wait_until_visible(self, locator: str, selector: str, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC) -> None:
+    def wait_until_visibility(
+        self, locator: str, selector: str, *, visible: bool = True, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC
+    ) -> None:
         """
-        Wait until a DOM element is visible.
+        Wait until a DOM element is either visible or hidden.
 
         :param locator: Locator strategy to pick a selector.
         :param selector: String to locate an element using the strategy.
+        :param visible: If False, wait until element is hidden.
         :param timeout: Number of seconds before timing out.
         """
-        LOGGER.debug('Waiting for element "%s" to be visible', selector)
-        WebDriverWait(self, timeout).until(ec.visibility_of_element_located((locator, selector)))
+        visibility_func: Callable[
+            [tuple[str, str]],
+            Callable[[SeleniumRemoteWebDriver | WebElement], WebElement | bool],
+        ]
+
+        if visible:
+            visibility_text = 'visible'
+            visibility_func = ec.visibility_of_element_located
+        else:
+            visibility_text = 'hidden'
+            visibility_func = ec.invisibility_of_element_located
+
+        msg = f'Waiting up to {timeout} sec for element "{selector}" to be {visibility_text}'
+        LOGGER.info(msg)
+        try:
+            WebDriverWait(self, timeout).until(visibility_func((locator, selector)))
+        except Exception as e:
+            add_note(e, msg)
+            raise
 
     # ---------------- Screenshots ----------------- #
 

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import random
+import signal
+import sys
 import time
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, NamedTuple
@@ -14,7 +17,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 from tabulate import tabulate
 
-from jpl_tour_bot import SCREENSHOT_PATH, URL_JPL_TOUR, Args
+from jpl_tour_bot import SCREENSHOT_PATH, STATE_FILE, TOUR_SIZE, TOUR_TYPE, URL_JPL_TOUR, Args
 from jpl_tour_bot.browser import ChromeWebDriver
 from jpl_tour_bot.state import State
 
@@ -98,7 +101,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> tuple[list[Notificat
     time.sleep(5)
 
     # Search for available tours.
-    _submit_tour_search_form(browser, tour_type='Visitor Day Tour', tour_size=1)
+    _submit_tour_search_form(browser)
 
     # Get details of available tours, and check if the availability has changed.
     tour_availability_msg = _get_tour_availability_after_search(browser)
@@ -143,13 +146,11 @@ def _get_next_tour_release_date(browser: ChromeWebDriver) -> str:
     return next_tour_msg
 
 
-def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_size: int) -> None:
+def _submit_tour_search_form(browser: ChromeWebDriver) -> None:
     """
     Fill out and submit the web form, searching for available tours.
 
     :param browser: The open browser instance.
-    :param tour_type: The type of tour to search for, must be one of the values from the web dropdown.
-    :param tour_size: The number of visitors, must be one of the form's allowed values.
     """
     LOGGER.info('Finding the tour search form')
     search_form_element = browser.find(
@@ -159,7 +160,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         log_msg='Could not find tour search form',
     )
 
-    LOGGER.info('Selecting the tour type: "%s"', tour_type)
+    LOGGER.info('Selecting the tour type: "%s"', TOUR_TYPE)
     tour_type_select = browser.find(
         By.XPATH,
         ".//select[@name='categoryId']",
@@ -167,11 +168,11 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise_exception=True,
         log_msg='Could not find tour type select box',
     )
-    Select(tour_type_select).select_by_visible_text(tour_type)
+    Select(tour_type_select).select_by_visible_text(TOUR_TYPE)
 
     time.sleep(1)
 
-    LOGGER.info('Entering the number of visitors: %d', tour_size)
+    LOGGER.info('Entering the number of visitors: %d', TOUR_SIZE)
     tour_size_input = browser.find(
         By.XPATH,
         ".//input[@name='groupSize']",
@@ -179,7 +180,7 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise_exception=True,
         log_msg='Could not find tour size input box',
     )
-    tour_size_input.send_keys(str(tour_size))
+    tour_size_input.send_keys(str(TOUR_SIZE))
 
     time.sleep(1)
 
@@ -195,8 +196,21 @@ def _submit_tour_search_form(browser: ChromeWebDriver, *, tour_type: str, tour_s
         raise RuntimeError('Submit button for the tour search form is not enabled')
     try:
         submit_form_button.click()
-    except Exception:
-        raise RuntimeError("Can't click on %s", submit_form_button.get_attribute('outerHTML')) from None
+    except Exception as e:
+        raise RuntimeError("Can't click on %s", submit_form_button.get_attribute('outerHTML')) from e
+
+    # Wait until the gear icon appears (indicating the form is being submitted).
+    cog_icon_class = 'fa-cog'
+    browser.wait_until_visibility(
+        By.CLASS_NAME,
+        cog_icon_class,
+        visible=True,
+        timeout=min(5, browser.timeouts._page_load / 1000),  # type: ignore[attr-defined]
+    )
+
+    # Wait until the gear icon disappears (the form has been submitted).
+    # At busy times, when new tours are being released, the icon may not disappear. Time out after a while to retry.
+    browser.wait_until_visibility(By.CLASS_NAME, cog_icon_class, visible=False)
 
 
 def _get_tour_availability_after_search(browser: ChromeWebDriver) -> str:
@@ -207,7 +221,7 @@ def _get_tour_availability_after_search(browser: ChromeWebDriver) -> str:
     :return: The availability of the next tours, from the JPL website.
     """
     LOGGER.info('Waiting for the tour search to load')
-    browser.wait_until_visible(By.XPATH, "//*[@id='primary_column']/div/table")
+    browser.wait_until_visibility(By.CLASS_NAME, 'tour_type_table', visible=True)
     time.sleep(5)
 
     LOGGER.info('Trying to find the error message')
@@ -346,12 +360,21 @@ def _open_tour_reservation(
     selected_tour.RESERVE_BUTTON.click()
 
     # Wait until the reservation page loads and the timer starts counting down.
-    browser.wait_until_visible(By.XPATH, "//div[contains(@class, 'clock') and normalize-space(text())]")
+    browser.wait_until_visibility(
+        By.XPATH, "//div[contains(@class, 'clock') and normalize-space(text())]", visible=True
+    )
 
     # Wait for manual completion of the booking form.
     time_to_wait = datetime.strptime(browser.find(By.CLASS_NAME, 'clock', raise_exception=True).text, '%M:%S')
     timedelta_to_wait = timedelta(minutes=time_to_wait.minute + 5, seconds=time_to_wait.second)
-    LOGGER.info('\n\tWaiting %s to complete the booking form.\n\tUse Ctrl+C to continue.', timedelta_to_wait)
+    cancel_signal = signal.SIGINT
+    LOGGER.info(
+        '\n\tWaiting %s to complete the booking form.\n\tUse Ctrl+C (%s or signal %d) to continue.\n\tProcess ID: %d',
+        timedelta_to_wait,
+        cancel_signal.name,
+        cancel_signal.value,
+        os.getpid(),
+    )
     try:
         time.sleep(timedelta_to_wait.total_seconds())
     except KeyboardInterrupt:
@@ -359,10 +382,21 @@ def _open_tour_reservation(
     else:
         LOGGER.info('Finished waiting.')
 
-    try:
-        made_booking = input('\nWAS THE BOOKING SUCCESSFUL? (y/n): ')
-    except KeyboardInterrupt:
-        pass  # use default value
+    if sys.stdin.isatty():
+        try:
+            made_booking = input('\nWAS THE BOOKING SUCCESSFUL? (y/n): ')
+        except KeyboardInterrupt:
+            pass  # use default value
+        else:
+            continue_pressing_reserve_button = not any(
+                s == made_booking.lower().strip() for s in ('y', 'yes', 't', 'true')
+            )
     else:
-        continue_pressing_reserve_button = not any(s == made_booking.lower().strip() for s in ('y', 'yes', 't', 'true'))
+        LOGGER.warning(
+            (
+                'Cannot read input from `stdin`. '
+                'If the booking was successful, please update `PRESS_RESERVE_BUTTON` in: %s'
+            ),
+            STATE_FILE.absolute(),
+        )
     return continue_pressing_reserve_button

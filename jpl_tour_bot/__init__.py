@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+TOUR_TYPE = 'Visitor Day Tour'  # The type of tour to search for, must be one of the values from the web dropdown.
+TOUR_SIZE = 1  # The number of visitors, must be one of the form's allowed values.
+
 _SCRIPT_PATH = Path(__file__).parent
 STATE_FILE = _SCRIPT_PATH / 'jpl_tour.state.json'
 SCREENSHOT_PATH = _SCRIPT_PATH / 'jpl_tours.png'
@@ -25,7 +28,6 @@ class Args:
     page_timeout: int
     reserve_date_range: list[datetime] | None
     notify: str | None
-    verbose: bool
     wait: list[int] | None
 
     @staticmethod
@@ -93,12 +95,6 @@ class Args:
             action='store',
             metavar='DEST',
             help='set the notification Discord webhook',
-        )
-        arg_parser.add_argument(
-            '-v',
-            '--verbose',
-            action='store_true',
-            help='enable verbose logging',
         )
         arg_parser.add_argument(
             '-w',
