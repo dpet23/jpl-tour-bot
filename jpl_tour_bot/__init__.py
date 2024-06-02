@@ -25,7 +25,7 @@ class Args:
 
     browser_binary: Path
     ui: bool
-    page_timeout: int
+    page_timeout: float
     reserve_date_range: list[datetime] | None
     notify: str | None
     wait: list[int] | None
@@ -74,6 +74,7 @@ class Args:
             '--page-timeout',
             action='store',
             metavar='SEC',
+            type=float,
             default=BROWSER_DEFAULT_PAGE_TIMEOUT_SEC,
             help=(
                 'maximum time to wait for a webpage to load '

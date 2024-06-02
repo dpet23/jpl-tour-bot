@@ -139,7 +139,7 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
     # ------------ Waiting For Elements ------------ #
 
     def wait_until_visibility(
-        self, locator: str, selector: str, *, visible: bool = True, timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC
+        self, locator: str, selector: str, *, visible: bool = True, timeout: float | None = None
     ) -> None:
         """
         Wait until a DOM element is either visible or hidden.
@@ -161,6 +161,7 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
             visibility_text = 'hidden'
             visibility_func = ec.invisibility_of_element_located
 
+        timeout = (timeout) or (self.timeouts._page_load / 1000)  # type: ignore[attr-defined]
         msg = f'Waiting up to {timeout} sec for element "{selector}" to be {visibility_text}'
         LOGGER.info(msg)
         try:
@@ -175,7 +176,7 @@ class _CustomWebDriver(SeleniumRemoteWebDriver):
         """
         Save a screenshot of the full page body to a PNG image file.
 
-        :param filename: The full path to save the screenshot. Should end with a .png extension.
+        :param path: The full path to save the screenshot. Should end with a .png extension.
         """
         original_size = self.get_window_size()
 
@@ -204,7 +205,7 @@ class ChromeWebDriver(_CustomWebDriver, SeleniumChromeWebDriver):
 
     @staticmethod
     def start_new_session(
-        executable_path: Path, page_load_timeout: int = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, *, headless: bool
+        executable_path: Path, page_load_timeout: float = BROWSER_DEFAULT_PAGE_TIMEOUT_SEC, *, headless: bool
     ) -> ChromeWebDriver:
         """
         Start a new browser session.
