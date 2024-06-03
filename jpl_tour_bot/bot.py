@@ -89,7 +89,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> tuple[list[Notificat
     # Open the webpage.
     browser.open_url(URL_JPL_TOUR)
 
-    time.sleep(5)
+    time.sleep(1)
 
     notification_messages: list[Notification] = []
 
@@ -98,7 +98,7 @@ def _scrape_tour(browser: ChromeWebDriver, state: State) -> tuple[list[Notificat
     if notification := state.set_field('NEXT_TOUR_MSG', next_tour_msg, 'Next tour message has changed'):
         notification_messages.append(notification)
 
-    time.sleep(5)
+    time.sleep(1)
 
     # Search for available tours.
     _submit_tour_search_form(browser)

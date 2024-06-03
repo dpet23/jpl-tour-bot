@@ -25,7 +25,7 @@ def main() -> None:
     state = None
     with StoreWarningsErrors(logger='jpl_tour_bot', min_log_level=logging.WARNING) as handler:
         args = Args.parse_args()
-        LOGGER.debug(args)
+        LOGGER.info(args)
 
         state = State.from_file(STATE_FILE)
         LOGGER.debug(state)
